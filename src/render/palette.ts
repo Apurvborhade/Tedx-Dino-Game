@@ -7,8 +7,8 @@ export interface PaletteColors {
   paper: string;
 }
 
-export const DAY: PaletteColors = { ink: '#1a1a1a', paper: '#f7f7f7' };
-export const NIGHT: PaletteColors = { ink: '#f2f2f2', paper: '#141414' };
+export const DAY: PaletteColors = { ink: '#2a1e14', paper: '#ecdcb6' };
+export const NIGHT: PaletteColors = { ink: '#f0e6c8', paper: '#0b0d1a' };
 
 /** Parse hex color to RGB */
 export function hexToRgb(hex: string): [number, number, number] {

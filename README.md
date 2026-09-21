@@ -7,11 +7,10 @@ A 1-bit monochrome pixel-art endless runner game built for the **TEDxDYPDPU** ev
 ## 🌟 Game Highlights
 
 - **Thematic Narrative**: Play as the sacred rolling *Kalachakra* (Wheel of Time).
-- **Shifting Eras & Dynasties**: Seamless background transitions across **Past** (ancient temples), **Present** (modern industrial arches), and **Future** (sci-fi spires & energy rings).
-- **Day / Night Cycles**: Dynamic sunset dithering and midnight star fields that shift independently based on score.
+- **Day / Night Environments**: A painted golden-hour temple skyline that crossfades into an eclipse night sky as the score-driven day/night cycle turns (700+).
 - **Micro-Engine**:
   - 120Hz fixed-timestep simulation accumulator.
-  - Zero external image or audio files (100% procedurally rasterized sprite atlas and synthesized Web Audio).
+  - Painted parallax environments (`public/game-bg`) that crossfade day → night as you score; sprites and audio remain procedural.
   - Variable jump height, jump buffering (100ms), and coyote time (60ms).
   - Deterministic PRNG obstacle spawner guaranteeing all jumps are physically clearable.
 - **Ultra-lightweight**: ~18KB total gzipped bundle size (loads in <300ms on 3G networks).

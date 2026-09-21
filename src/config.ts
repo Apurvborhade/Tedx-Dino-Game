@@ -46,7 +46,8 @@ export const THEME_THRESHOLDS = {
   FUTURE: 1500,
   NIGHT_START: 700,
   CYCLE_LENGTH: 1400,
-  TRANSITION_DURATION: 1.2,
+  /** Seconds for the day ⇄ night crossfade (backdrop + palette) */
+  TRANSITION_DURATION: 0.6,
 } as const;
 
 export const PLAYER_CONFIG = {

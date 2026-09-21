@@ -77,8 +77,8 @@ export class Renderer {
       ctx.translate(offsetX, offsetY);
     }
 
-    // 2. Parallax Backdrop (silhouettes, sun/moon, stars)
-    backdrop.draw(ctx, theme.palette.ink, 1.0);
+    // 2. Painted backdrop plates (day ⇄ night crossfade by score cycle)
+    backdrop.draw(ctx, theme.nightFactor);
 
     // 3. Ground (baseline + era glyphs)
     ground.draw(ctx, theme.palette.ink);
@@ -113,12 +113,7 @@ export class Renderer {
     // 6. Player (Rolling Kalachakra Wheel)
     this.drawPlayer(ctx, player, interpolationAlpha);
 
-    // 7. Sunset Dither band (transition effect between day/night)
-    if (theme.ditherActive && theme.ditherY >= 0) {
-      this.drawDitherBand(ctx, theme.palette.ink, theme.ditherY);
-    }
-
-    // 8. HUD / Score overlay
+    // 7. HUD / Score overlay
     if (state === 'PLAYING' || state === 'DYING' || state === 'GAME_OVER' || state === 'PAUSED') {
       this.drawHUD(ctx, score, theme.palette.ink, isMuted);
     }
@@ -157,21 +152,6 @@ export class Renderer {
     }
 
     ctx.restore();
-  }
-
-  private drawDitherBand(ctx: CanvasRenderingContext2D, inkColor: string, yPos: number): void {
-    ctx.fillStyle = inkColor;
-    const bandHeight = 24;
-    const startY = Math.max(0, yPos - bandHeight / 2);
-    const endY = Math.min(VIRTUAL.HEIGHT, yPos + bandHeight / 2);
-
-    for (let y = startY; y < endY; y += 2) {
-      const ditherDensity = (y - startY) / bandHeight;
-      const step = ditherDensity < 0.5 ? 4 : 2;
-      for (let x = (y % 4 === 0 ? 0 : 2); x < VIRTUAL.WIDTH; x += step) {
-        ctx.fillRect(x, y, 1, 1);
-      }
-    }
   }
 
   private drawHUD(

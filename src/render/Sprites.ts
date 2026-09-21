@@ -45,37 +45,43 @@ export function generateSprites(): SpriteAtlas {
   };
 }
 
-/** Apply ink color tint to all sprites */
+/** Apply ink color tint to all sprites. Tinted canvases are allocated once
+ *  and repainted in place with source-in compositing, so this is cheap enough
+ *  to call every frame during a palette fade. */
 export function tintSprites(atlas: SpriteAtlas, inkR: number, inkG: number, inkB: number): void {
-  atlas.tintedWheelAtlas = tintCanvas(atlas.wheelAtlas, inkR, inkG, inkB);
-  atlas.tintedWheelHero = tintCanvas(atlas.wheelHero, inkR, inkG, inkB);
-  atlas.tintedObstacles = new Map();
+  const color = `rgb(${inkR},${inkG},${inkB})`;
+  if (atlas.tintedWheelAtlas === atlas.wheelAtlas) {
+    atlas.tintedWheelAtlas = cloneCanvas(atlas.wheelAtlas);
+    atlas.tintedWheelHero = cloneCanvas(atlas.wheelHero);
+    atlas.tintedObstacles = new Map();
+    for (const [key, canvas] of atlas.obstacles) {
+      atlas.tintedObstacles.set(key, cloneCanvas(canvas));
+    }
+  }
+  tintInto(atlas.tintedWheelAtlas, atlas.wheelAtlas, color);
+  tintInto(atlas.tintedWheelHero, atlas.wheelHero, color);
   for (const [key, canvas] of atlas.obstacles) {
-    atlas.tintedObstacles.set(key, tintCanvas(canvas, inkR, inkG, inkB));
+    tintInto(atlas.tintedObstacles.get(key)!, canvas, color);
   }
 }
 
-function tintCanvas(src: HTMLCanvasElement, r: number, g: number, b: number): HTMLCanvasElement {
+function cloneCanvas(src: HTMLCanvasElement): HTMLCanvasElement {
   const c = document.createElement('canvas');
   c.width = src.width;
   c.height = src.height;
-  const ctx = c.getContext('2d')!;
-
-  // Draw source
-  ctx.drawImage(src, 0, 0);
-
-  // Get pixel data and tint
-  const imageData = ctx.getImageData(0, 0, c.width, c.height);
-  const data = imageData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    if (data[i + 3]! > 0) {
-      data[i] = r;
-      data[i + 1] = g;
-      data[i + 2] = b;
-    }
-  }
-  ctx.putImageData(imageData, 0, 0);
   return c;
+}
+
+function tintInto(dst: HTMLCanvasElement, src: HTMLCanvasElement, color: string): void {
+  const ctx = dst.getContext('2d')!;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.clearRect(0, 0, dst.width, dst.height);
+  ctx.drawImage(src, 0, 0);
+  // Keep only the source's alpha, replace its colour with ink
+  ctx.globalCompositeOperation = 'source-in';
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, dst.width, dst.height);
+  ctx.globalCompositeOperation = 'source-over';
 }
 
 // ── Wheel generation ──────────────────────────────────────────────────────
