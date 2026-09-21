@@ -36,7 +36,9 @@ export class Input {
     gameRoot.addEventListener('contextmenu', (e) => e.preventDefault());
 
     // Prevent rubber-band scrolling
-    gameRoot.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+    gameRoot.addEventListener('touchmove', (e) => {
+      if (!this.isInteractive(e.target)) e.preventDefault();
+    }, { passive: false });
   }
 
   /** Register an element that should not trigger jumps */
@@ -82,6 +84,8 @@ export class Input {
 
   private onKeyDown = (e: KeyboardEvent): void => {
     if (e.repeat) return;
+    // Let text fields and focused buttons keep Space/Enter
+    if (this.isInteractive(e.target)) return;
     if (e.code === 'Space' || e.code === 'ArrowUp') {
       e.preventDefault();
       this._jumpDown = true;
@@ -96,16 +100,25 @@ export class Input {
   };
 
   private onPointerDown = (e: PointerEvent): void => {
-    // Check if the target is an ignored element (buttons, inputs)
-    const target = e.target as HTMLElement;
-    for (const ignored of this.ignoreElements) {
-      if (ignored === target || ignored.contains(target)) {
-        return;
-      }
-    }
+    // Only the primary button/finger counts as a jump
+    if (e.button !== 0) return;
+    if (this.isInteractive(e.target)) return;
     this._jumpDown = true;
     this.fireFirstGesture();
   };
+
+  /** True when the tap landed on a control that should get the click instead
+   *  of the game (buttons, inputs, scrollable lists, explicitly ignored nodes). */
+  private isInteractive(target: EventTarget | null): boolean {
+    if (!(target instanceof Element)) return false;
+    if (target.closest('button, a, input, select, textarea, label, [data-no-jump]')) {
+      return true;
+    }
+    for (const ignored of this.ignoreElements) {
+      if (ignored === target || ignored.contains(target)) return true;
+    }
+    return false;
+  }
 
   private onPointerUp = (_e: PointerEvent): void => {
     this._jumpDown = false;

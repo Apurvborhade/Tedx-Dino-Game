@@ -131,7 +131,10 @@ export class Game {
     this.renderer.update(dt);
 
     if (this.state === 'READY') {
-      if (this.input.jumpPressed || this.input.hasBufferedJump()) {
+      if (
+        this.screens.getCurrentScreen() === 'READY' &&
+        (this.input.jumpPressed || this.input.hasBufferedJump())
+      ) {
         this.input.consumeJump();
         this.startRun();
         return;

@@ -21,6 +21,10 @@ export interface SpriteAtlas {
   tintedWheelAtlas: HTMLCanvasElement;
   tintedWheelHero: HTMLCanvasElement;
   tintedObstacles: Map<string, HTMLCanvasElement>;
+  /** 1px paper-coloured outlines, each HALO px larger on every side, drawn
+   *  under the tinted sprite to separate it from the painted backdrop */
+  haloWheelAtlas: HTMLCanvasElement;
+  haloObstacles: Map<string, HTMLCanvasElement>;
   /** Mute icon sprites */
   muteOn: HTMLCanvasElement;
   muteOff: HTMLCanvasElement;
@@ -40,36 +44,67 @@ export function generateSprites(): SpriteAtlas {
     tintedWheelAtlas: wheelAtlas, // will be replaced on first tint
     tintedWheelHero: wheelHero,
     tintedObstacles: new Map(obstacles),
+    haloWheelAtlas: wheelAtlas, // will be replaced on first tint
+    haloObstacles: new Map(),
     muteOn,
     muteOff,
   };
 }
 
-/** Apply ink color tint to all sprites. Tinted canvases are allocated once
- *  and repainted in place with source-in compositing, so this is cheap enough
- *  to call every frame during a palette fade. */
-export function tintSprites(atlas: SpriteAtlas, inkR: number, inkG: number, inkB: number): void {
-  const color = `rgb(${inkR},${inkG},${inkB})`;
+/** Halo thickness in px on each side */
+export const HALO = 1;
+
+/** Apply ink color tint to all sprites (and rebuild their paper halos).
+ *  Canvases are allocated once and repainted in place with source-in
+ *  compositing, so this is cheap enough to call every frame during a fade. */
+export function tintSprites(
+  atlas: SpriteAtlas,
+  inkR: number, inkG: number, inkB: number,
+  paperR: number, paperG: number, paperB: number,
+): void {
+  const ink = `rgb(${inkR},${inkG},${inkB})`;
+  const paper = `rgb(${paperR},${paperG},${paperB})`;
   if (atlas.tintedWheelAtlas === atlas.wheelAtlas) {
-    atlas.tintedWheelAtlas = cloneCanvas(atlas.wheelAtlas);
-    atlas.tintedWheelHero = cloneCanvas(atlas.wheelHero);
+    atlas.tintedWheelAtlas = cloneCanvas(atlas.wheelAtlas, 0);
+    atlas.tintedWheelHero = cloneCanvas(atlas.wheelHero, 0);
+    atlas.haloWheelAtlas = cloneCanvas(atlas.wheelAtlas, HALO);
     atlas.tintedObstacles = new Map();
+    atlas.haloObstacles = new Map();
     for (const [key, canvas] of atlas.obstacles) {
-      atlas.tintedObstacles.set(key, cloneCanvas(canvas));
+      atlas.tintedObstacles.set(key, cloneCanvas(canvas, 0));
+      atlas.haloObstacles.set(key, cloneCanvas(canvas, HALO));
     }
   }
-  tintInto(atlas.tintedWheelAtlas, atlas.wheelAtlas, color);
-  tintInto(atlas.tintedWheelHero, atlas.wheelHero, color);
+  tintInto(atlas.tintedWheelAtlas, atlas.wheelAtlas, ink);
+  tintInto(atlas.tintedWheelHero, atlas.wheelHero, ink);
+  haloInto(atlas.haloWheelAtlas, atlas.wheelAtlas, paper);
   for (const [key, canvas] of atlas.obstacles) {
-    tintInto(atlas.tintedObstacles.get(key)!, canvas, color);
+    tintInto(atlas.tintedObstacles.get(key)!, canvas, ink);
+    haloInto(atlas.haloObstacles.get(key)!, canvas, paper);
   }
 }
 
-function cloneCanvas(src: HTMLCanvasElement): HTMLCanvasElement {
+function cloneCanvas(src: HTMLCanvasElement, pad: number): HTMLCanvasElement {
   const c = document.createElement('canvas');
-  c.width = src.width;
-  c.height = src.height;
+  c.width = src.width + pad * 2;
+  c.height = src.height + pad * 2;
   return c;
+}
+
+/** Dilate the source alpha by HALO px in 8 directions, then fill with paper. */
+function haloInto(dst: HTMLCanvasElement, src: HTMLCanvasElement, color: string): void {
+  const ctx = dst.getContext('2d')!;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.clearRect(0, 0, dst.width, dst.height);
+  for (let dy = -HALO; dy <= HALO; dy++) {
+    for (let dx = -HALO; dx <= HALO; dx++) {
+      ctx.drawImage(src, HALO + dx, HALO + dy);
+    }
+  }
+  ctx.globalCompositeOperation = 'source-in';
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, dst.width, dst.height);
+  ctx.globalCompositeOperation = 'source-over';
 }
 
 function tintInto(dst: HTMLCanvasElement, src: HTMLCanvasElement, color: string): void {

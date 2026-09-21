@@ -7,6 +7,8 @@ import { VIRTUAL } from '../config';
 import type { Era } from './Ground';
 
 const PARALLAX = 0.15; // fraction of world speed the plate scrolls at
+/** Paper-coloured haze laid over the plates so ink sprites stay readable */
+const VEIL_ALPHA = 0.38;
 
 export interface TimeOfDay {
   phase: 'DAY' | 'SUNSET' | 'NIGHT';
@@ -101,14 +103,22 @@ export class Backdrop {
     this.currentEra = 'PAST';
   }
 
-  /** @param nightFactor eased 0 = full day, 1 = full night */
-  draw(ctx: CanvasRenderingContext2D, nightFactor: number): void {
+  /**
+   * @param nightFactor eased 0 = full day, 1 = full night
+   * @param paper       current palette paper colour, used for the veil
+   */
+  draw(ctx: CanvasRenderingContext2D, nightFactor: number, paper: string): void {
     ctx.save();
     // Plates are painted, not 1-bit sprites — let them scale smoothly.
     ctx.imageSmoothingEnabled = true;
 
     if (nightFactor < 1) this.drawTiled(ctx, this.plates.day, 1);
     if (nightFactor > 0) this.drawTiled(ctx, this.plates.night, nightFactor);
+
+    // Push the painting back so obstacles and the wheel read at a glance
+    ctx.globalAlpha = VEIL_ALPHA;
+    ctx.fillStyle = paper;
+    ctx.fillRect(0, 0, VIRTUAL.WIDTH, VIRTUAL.HEIGHT);
 
     ctx.restore();
   }

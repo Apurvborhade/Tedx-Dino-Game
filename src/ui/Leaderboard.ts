@@ -33,7 +33,7 @@ export class LeaderboardView {
           <button type="button" class="icon-btn" id="lb-refresh-btn" title="Refresh">↻</button>
         </div>
         <p class="subtitle-text">TEDxDYPDPU • TOP RUNNERS</p>
-        <div class="leaderboard-table-wrapper">
+        <div class="leaderboard-table-wrapper" data-no-jump>
           <table class="leaderboard-table">
             <thead>
               <tr>

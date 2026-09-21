@@ -10,7 +10,7 @@ import type { ObstaclePool } from '../entities/Obstacle';
 import type { Backdrop } from '../entities/Backdrop';
 import type { Theme } from '../systems/Theme';
 import type { Score } from '../systems/Score';
-import { generateSprites, tintSprites, type SpriteAtlas } from './Sprites';
+import { generateSprites, tintSprites, HALO, type SpriteAtlas } from './Sprites';
 import { PixelFont } from './PixelFont';
 
 export class Renderer {
@@ -19,6 +19,7 @@ export class Renderer {
   private currentInkR = -1;
   private currentInkG = -1;
   private currentInkB = -1;
+  private currentPaperR = -1;
 
   private shakeTimer = 0;
   private shakeIntensity = 0;
@@ -54,15 +55,18 @@ export class Renderer {
     this.viewport.prepareFrame();
 
     // Check if we need to re-tint sprites
+    const pal = theme.palette;
     if (
-      this.currentInkR !== theme.palette.inkR ||
-      this.currentInkG !== theme.palette.inkG ||
-      this.currentInkB !== theme.palette.inkB
+      this.currentInkR !== pal.inkR ||
+      this.currentInkG !== pal.inkG ||
+      this.currentInkB !== pal.inkB ||
+      this.currentPaperR !== pal.paperR
     ) {
-      this.currentInkR = theme.palette.inkR;
-      this.currentInkG = theme.palette.inkG;
-      this.currentInkB = theme.palette.inkB;
-      tintSprites(this.atlas, this.currentInkR, this.currentInkG, this.currentInkB);
+      this.currentInkR = pal.inkR;
+      this.currentInkG = pal.inkG;
+      this.currentInkB = pal.inkB;
+      this.currentPaperR = pal.paperR;
+      tintSprites(this.atlas, pal.inkR, pal.inkG, pal.inkB, pal.paperR, pal.paperG, pal.paperB);
     }
 
     // 1. Clear background (Paper color)
@@ -78,7 +82,7 @@ export class Renderer {
     }
 
     // 2. Painted backdrop plates (day ⇄ night crossfade by score cycle)
-    backdrop.draw(ctx, theme.nightFactor);
+    backdrop.draw(ctx, theme.nightFactor, theme.palette.paper);
 
     // 3. Ground (baseline + era glyphs)
     ground.draw(ctx, theme.palette.ink);
@@ -95,6 +99,8 @@ export class Renderer {
         const drawY = obs.flyY > 0
           ? Math.round(obs.flyY)
           : Math.round(VIRTUAL.GROUND_Y - obs.height);
+        const halo = this.atlas.haloObstacles.get(key);
+        if (halo) ctx.drawImage(halo, drawX - HALO, drawY - HALO);
         ctx.drawImage(sprite, drawX, drawY);
       }
     }
@@ -137,21 +143,31 @@ export class Renderer {
       ctx.rotate(player.deathTilt);
       // Draw frame 0 or last frame
       const frameIdx = player.rotationFrame % PLAYER_CONFIG.ROLL_FRAMES;
-      ctx.drawImage(
-        this.atlas.tintedWheelAtlas,
-        frameIdx * size, 0, size, size,
-        -size / 2, -size / 2, size, size
-      );
+      this.drawWheelFrame(ctx, frameIdx, -size / 2, -size / 2);
     } else {
       const frameIdx = player.rotationFrame % PLAYER_CONFIG.ROLL_FRAMES;
-      ctx.drawImage(
-        this.atlas.tintedWheelAtlas,
-        frameIdx * size, 0, size, size,
-        drawX, drawY, size, size
-      );
+      this.drawWheelFrame(ctx, frameIdx, drawX, drawY);
     }
 
     ctx.restore();
+  }
+
+  /** Halo outline first, then the ink wheel frame on top. */
+  private drawWheelFrame(ctx: CanvasRenderingContext2D, frameIdx: number, x: number, y: number): void {
+    const size = PLAYER_CONFIG.SPRITE_SIZE;
+    const haloSize = size + HALO * 2;
+    // Halo atlas frames are stacked with the same stride as the wheel atlas,
+    // offset by HALO; frame i starts at i*size + HALO - HALO = i*size.
+    ctx.drawImage(
+      this.atlas.haloWheelAtlas,
+      frameIdx * size, 0, haloSize, haloSize,
+      x - HALO, y - HALO, haloSize, haloSize
+    );
+    ctx.drawImage(
+      this.atlas.tintedWheelAtlas,
+      frameIdx * size, 0, size, size,
+      x, y, size, size
+    );
   }
 
   private drawHUD(
