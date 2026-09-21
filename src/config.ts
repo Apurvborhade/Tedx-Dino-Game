@@ -29,10 +29,10 @@ export const PHYSICS = {
 
 export const SPEED = {
   INITIAL: 260,
-  MAX: 640,
+  MAX: 680,
   ACCEL: 4.2,
   USE_EXPONENTIAL: true,
-  EXP_K: 0.022,
+  EXP_K: 0.026,
 } as const;
 
 export const SPAWN = {
@@ -65,7 +65,7 @@ export const HARD_MODE = {
   /** Score at which hard mode kicks in — same as the first night */
   START_SCORE: THEME_THRESHOLDS.NIGHT_START,
   /** Extra px/s added on top of the normal speed curve */
-  SPEED_BONUS: 50,
+  SPEED_BONUS: 80,
   /** Seconds to blend the speed bonus in (no sudden jerk) */
   RAMP_SECONDS: 4,
   GAP_SPEED_FACTOR: 0.42,
@@ -79,6 +79,10 @@ export const PLAYER_CONFIG = {
   HITBOX_INSET: 5,
   ROLL_FRAMES: 8,
   ROLL_PX_PER_FRAME: 14,
+  /** Height of the squashed wheel while ducking */
+  DUCK_HEIGHT: 16,
+  /** Downward velocity applied when duck is pressed mid-air (fast fall) */
+  FAST_FALL_VELOCITY: 1400,
 } as const;
 
 export const AUDIO_CONFIG = {
@@ -99,11 +103,16 @@ export const LOOP = {
 } as const;
 
 export const OBSTACLE_TYPES = {
-  STONE_SMALL:    { width: 16, height: 20, minScore: 0,    isFlyer: false },
-  STONE_TALL:     { width: 18, height: 34, minScore: 0,    isFlyer: false },
-  PILLAR_BROKEN:  { width: 22, height: 30, minScore: 150,  isFlyer: false },
-  THORN_CLUSTER:  { width: 30, height: 24, minScore: 350,  isFlyer: false },
-  TIME_BIRD:      { width: 24, height: 16, minScore: 600,  isFlyer: true  },
+  STONE_SMALL:    { width: 16, height: 20,  minScore: 0,    isFlyer: false, isHanging: false },
+  STONE_TALL:     { width: 18, height: 34,  minScore: 0,    isFlyer: false, isHanging: false },
+  PILLAR_BROKEN:  { width: 22, height: 30,  minScore: 150,  isFlyer: false, isHanging: false },
+  THORN_CLUSTER:  { width: 30, height: 24,  minScore: 350,  isFlyer: false, isHanging: false },
+  TIME_BIRD:      { width: 24, height: 16,  minScore: 600,  isFlyer: true,  isHanging: false },
+  /** Hangs from the sky down to 24px above the ground: must be ducked under.
+   *  Height = GROUND_Y - 24. */
+  HANGING_GATE:   { width: 20, height: 172, minScore: 700,  isFlyer: false, isHanging: true  },
+  /** Tall spire: a tap jump barely clears it, a held jump is comfortable */
+  OBELISK:        { width: 12, height: 60,  minScore: 800,  isFlyer: false, isHanging: false },
 } as const;
 
 export type ObstacleTypeName = keyof typeof OBSTACLE_TYPES;

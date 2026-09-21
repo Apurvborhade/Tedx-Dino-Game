@@ -4,16 +4,36 @@
 
 import { PHYSICS } from '../config';
 
+/** A touch that travels this far downward before it is classified counts as
+ *  a duck rather than a jump. */
+const SWIPE_DOWN_PX = 14;
+/** How long a touch may stay unclassified before it is treated as a jump.
+ *  Short enough to feel instant, long enough to catch a swipe's first moves. */
+const TAP_CLASSIFY_MS = 45;
+
+type PointerMode = 'PENDING' | 'JUMP' | 'DUCK' | null;
+
 export class Input {
   jumpPressed = false;
   jumpHeld = false;
   jumpReleased = false;
+  /** Duck (ground) / fast-fall (air) is held: ↓ / S, or a downward swipe held */
+  duckHeld = false;
 
   /** Time since last jump press, for jump buffering */
   timeSinceJumpPress = Infinity;
 
   private _jumpDown = false;
   private _jumpWasDown = false;
+  private _keyDuckDown = false;
+  private _pointerDuckDown = false;
+
+  // Touch gesture classification
+  private pointerMode: PointerMode = null;
+  private pointerStartY = 0;
+  private pointerStartTime = 0;
+  /** A quick tap: jump for exactly one step, then release */
+  private tapRelease = false;
 
   /** Elements that should NOT trigger jump on tap (buttons, inputs, etc.) */
   private ignoreElements = new Set<HTMLElement>();
@@ -29,6 +49,7 @@ export class Input {
 
     // Pointer (covers touch + mouse)
     gameRoot.addEventListener('pointerdown', this.onPointerDown);
+    gameRoot.addEventListener('pointermove', this.onPointerMove);
     gameRoot.addEventListener('pointerup', this.onPointerUp);
     gameRoot.addEventListener('pointercancel', this.onPointerUp);
 
@@ -52,6 +73,13 @@ export class Input {
 
   /** Call at the start of each simulation step */
   update(dt: number): void {
+    // A touch that hasn't swiped down within the window is a jump
+    if (this.pointerMode === 'PENDING' && performance.now() - this.pointerStartTime >= TAP_CLASSIFY_MS) {
+      this.pointerMode = 'JUMP';
+      this._jumpDown = true;
+      this.fireFirstGesture();
+    }
+
     this.jumpPressed = this._jumpDown && !this._jumpWasDown;
     this.jumpReleased = !this._jumpDown && this._jumpWasDown;
     this.jumpHeld = this._jumpDown;
@@ -61,6 +89,14 @@ export class Input {
       this.timeSinceJumpPress = 0;
     } else {
       this.timeSinceJumpPress += dt;
+    }
+
+    this.duckHeld = this._keyDuckDown || this._pointerDuckDown;
+
+    // Quick tap: registered as pressed this step, released for the next
+    if (this.tapRelease) {
+      this.tapRelease = false;
+      this._jumpDown = false;
     }
   }
 
@@ -90,21 +126,39 @@ export class Input {
       e.preventDefault();
       this._jumpDown = true;
       this.fireFirstGesture();
+    } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+      e.preventDefault();
+      this._keyDuckDown = true;
+      this.fireFirstGesture();
     }
   };
 
   private onKeyUp = (e: KeyboardEvent): void => {
     if (e.code === 'Space' || e.code === 'ArrowUp') {
       this._jumpDown = false;
+    } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+      this._keyDuckDown = false;
     }
   };
 
   private onPointerDown = (e: PointerEvent): void => {
-    // Only the primary button/finger counts as a jump
+    // Only the primary button/finger counts
     if (e.button !== 0) return;
     if (this.isInteractive(e.target)) return;
-    this._jumpDown = true;
-    this.fireFirstGesture();
+    // Don't classify yet: a downward swipe in the next few ms means duck,
+    // anything else means jump.
+    this.pointerMode = 'PENDING';
+    this.pointerStartY = e.clientY;
+    this.pointerStartTime = performance.now();
+  };
+
+  private onPointerMove = (e: PointerEvent): void => {
+    if (this.pointerMode !== 'PENDING') return;
+    if (e.clientY - this.pointerStartY >= SWIPE_DOWN_PX) {
+      this.pointerMode = 'DUCK';
+      this._pointerDuckDown = true;
+      this.fireFirstGesture();
+    }
   };
 
   /** True when the tap landed on a control that should get the click instead
@@ -121,16 +175,35 @@ export class Input {
   }
 
   private onPointerUp = (_e: PointerEvent): void => {
-    this._jumpDown = false;
+    switch (this.pointerMode) {
+      case 'PENDING':
+        // Released before classification: a quick tap → one-step jump press
+        this._jumpDown = true;
+        this.tapRelease = true;
+        this.fireFirstGesture();
+        break;
+      case 'JUMP':
+        this._jumpDown = false;
+        break;
+      case 'DUCK':
+        this._pointerDuckDown = false;
+        break;
+    }
+    this.pointerMode = null;
   };
 
   /** Reset between runs */
   reset(): void {
     this._jumpDown = false;
     this._jumpWasDown = false;
+    this._keyDuckDown = false;
+    this._pointerDuckDown = false;
+    this.pointerMode = null;
+    this.tapRelease = false;
     this.jumpPressed = false;
     this.jumpHeld = false;
     this.jumpReleased = false;
+    this.duckHeld = false;
     this.timeSinceJumpPress = Infinity;
   }
 

@@ -60,8 +60,9 @@ serve(async (req) => {
 
     // 5. Plausibility check against run duration
     const durationMs = token?.durationMs ?? 1000;
-    // Theoretical max speed = 640 px/s. 1 px = 0.025 score units. Max score per sec = 16.
-    const maxTheoreticalScore = Math.ceil((durationMs / 1000) * 18) + 50;
+    // Theoretical max speed = 680 + 80 (hard mode) = 760 px/s. 1 px = 0.025
+    // score units → 19 score/s. Allow 21/s + slack.
+    const maxTheoreticalScore = Math.ceil((durationMs / 1000) * 21) + 50;
     if (score > maxTheoreticalScore && score > 200) {
       return new Response(JSON.stringify({ error: 'Score violates physical trajectory bounds' }), {
         status: 400,

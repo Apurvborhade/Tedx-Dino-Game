@@ -2,7 +2,7 @@
 // Sprites.ts — Procedural sprite rasterization → offscreen canvas atlas
 // ════════════════════════════════════════════════════════════════════════════
 
-import { PLAYER_CONFIG, type ObstacleTypeName } from '../config';
+import { PLAYER_CONFIG, OBSTACLE_TYPES, type ObstacleTypeName } from '../config';
 import { Rng } from '../core/Rng';
 
 const SPOKES = 8;
@@ -237,7 +237,7 @@ function cleanupIsolated(data: Uint8ClampedArray, w: number, h: number): void {
 function generateAllObstacles(): Map<string, HTMLCanvasElement> {
   const map = new Map<string, HTMLCanvasElement>();
 
-  const types: ObstacleTypeName[] = ['STONE_SMALL', 'STONE_TALL', 'PILLAR_BROKEN', 'THORN_CLUSTER', 'TIME_BIRD'];
+  const types: ObstacleTypeName[] = ['STONE_SMALL', 'STONE_TALL', 'PILLAR_BROKEN', 'THORN_CLUSTER', 'TIME_BIRD', 'HANGING_GATE', 'OBELISK'];
 
   for (const type of types) {
     for (let variant = 0; variant < 3; variant++) {
@@ -252,14 +252,8 @@ function generateAllObstacles(): Map<string, HTMLCanvasElement> {
 function generateObstacle(type: ObstacleTypeName, variant: number): HTMLCanvasElement {
   const rng = new Rng(type.charCodeAt(0) * 100 + variant * 7);
 
-  let w: number, h: number;
-  switch (type) {
-    case 'STONE_SMALL': w = 16; h = 20; break;
-    case 'STONE_TALL': w = 18; h = 34; break;
-    case 'PILLAR_BROKEN': w = 22; h = 30; break;
-    case 'THORN_CLUSTER': w = 30; h = 24; break;
-    case 'TIME_BIRD': w = 24; h = 16; break;
-  }
+  const w = OBSTACLE_TYPES[type].width;
+  const h = OBSTACLE_TYPES[type].height;
 
   const c = document.createElement('canvas');
   c.width = w;
@@ -282,6 +276,12 @@ function generateObstacle(type: ObstacleTypeName, variant: number): HTMLCanvasEl
       break;
     case 'TIME_BIRD':
       drawTimeBird(ctx, w, h, variant);
+      break;
+    case 'HANGING_GATE':
+      drawHangingGate(ctx, w, h, rng);
+      break;
+    case 'OBELISK':
+      drawObelisk(ctx, w, h, rng);
       break;
   }
 
@@ -365,6 +365,46 @@ function drawThornCluster(ctx: CanvasRenderingContext2D, _w: number, _h: number,
       const rowX = tx + Math.floor((baseW - rowWidth) / 2);
       ctx.fillRect(rowX, baseY - th + row, rowWidth, 1);
     }
+  }
+}
+
+function drawHangingGate(ctx: CanvasRenderingContext2D, w: number, h: number, rng: Rng): void {
+  // Chain from the sky: two dotted strands
+  const blockH = 34;
+  const chainBottom = h - blockH;
+  for (let y = 0; y < chainBottom; y += 3) {
+    ctx.fillRect(5, y, 2, 2);
+    ctx.fillRect(w - 7, y, 2, 2);
+  }
+  // Suspended stone gate block with a carved slot and a jagged underside
+  ctx.fillRect(1, chainBottom, w - 2, blockH - 4);
+  ctx.fillRect(0, chainBottom + 2, w, 3);
+  ctx.clearRect(Math.floor(w / 2) - 2, chainBottom + 9, 4, 12);
+  const jag = [0, 2, 1, 3, 0, 2, 1, 2];
+  for (let x = 1; x < w - 1; x++) {
+    ctx.fillRect(x, h - 4, 1, jag[(x + rng.int(0, 1)) % jag.length]! + 1);
+  }
+}
+
+function drawObelisk(ctx: CanvasRenderingContext2D, w: number, h: number, rng: Rng): void {
+  // Tall tapering spire with a pyramid cap and a plinth
+  const capH = 8;
+  for (let y = 0; y < capH; y++) {
+    const rowW = Math.max(2, Math.round((w - 4) * (y / capH)));
+    ctx.fillRect(Math.floor((w - rowW) / 2), y, rowW, 1);
+  }
+  const shaftTop = capH;
+  const shaftBottom = h - 6;
+  for (let y = shaftTop; y < shaftBottom; y++) {
+    const t = (y - shaftTop) / (shaftBottom - shaftTop);
+    const rowW = Math.round((w - 4) + t * 2);
+    ctx.fillRect(Math.floor((w - rowW) / 2), y, rowW, 1);
+  }
+  ctx.fillRect(0, h - 6, w, 6);
+  // Carved glyph column
+  const gx = Math.floor(w / 2);
+  for (let y = shaftTop + 6 + rng.int(0, 3); y < shaftBottom - 8; y += 5) {
+    ctx.clearRect(gx - 1, y, 2, 2);
   }
 }
 

@@ -6,7 +6,7 @@ import { SPAWN, OBSTACLE_TYPES, VIRTUAL, PHYSICS, FLYERS, HARD_MODE, type Obstac
 import { Rng } from '../core/Rng';
 import { ObstaclePool } from './Obstacle';
 
-const TYPE_NAMES: readonly ObstacleTypeName[] = ['STONE_SMALL', 'STONE_TALL', 'PILLAR_BROKEN', 'THORN_CLUSTER'] as const;
+const TYPE_NAMES: readonly ObstacleTypeName[] = ['STONE_SMALL', 'STONE_TALL', 'PILLAR_BROKEN', 'THORN_CLUSTER', 'HANGING_GATE', 'OBELISK'] as const;
 
 /** Maximum number of variants per obstacle type */
 const MAX_VARIANTS = 3;
@@ -87,16 +87,20 @@ export class ObstacleSpawner {
     this.lastTypes.push(type);
     if (this.lastTypes.length > 3) this.lastTypes.shift();
 
-    // Cluster logic
+    // Cluster logic. A hanging gate never clusters: ducking under it and
+    // then jumping a stone 30px later isn't humanly possible.
     let isCluster = false;
     const clusterChance = hard ? HARD_MODE.CLUSTER_CHANCE : SPAWN.CLUSTER_CHANCE;
+    const clusterable = eligibleTypes.filter(t => !OBSTACLE_TYPES[t].isHanging);
     if (score >= SPAWN.CLUSTER_MIN_SCORE &&
+        !OBSTACLE_TYPES[type].isHanging &&
+        clusterable.length > 0 &&
         !this.lastWasCluster &&
         this.consecutiveClusterCount < 2 &&
         this.rng.chance(clusterChance)) {
       // Spawn second obstacle close by
       const clusterGap = this.rng.range(20, 34);
-      const clusterType = this.rng.pick(eligibleTypes);
+      const clusterType = this.rng.pick(clusterable);
       const clusterVariant = this.rng.int(0, MAX_VARIANTS - 1);
       pool.spawn(clusterType, this.nextSpawnX + OBSTACLE_TYPES[type].width + clusterGap, clusterVariant);
       isCluster = true;

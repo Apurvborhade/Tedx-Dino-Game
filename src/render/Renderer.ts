@@ -6,7 +6,7 @@ import { VIRTUAL, SCORE_CONFIG, PLAYER_CONFIG } from '../config';
 import type { Viewport } from '../core/Viewport';
 import type { Player } from '../entities/Player';
 import type { Ground } from '../entities/Ground';
-import type { ObstaclePool } from '../entities/Obstacle';
+import { ObstaclePool } from '../entities/Obstacle';
 import type { Backdrop } from '../entities/Backdrop';
 import type { Theme } from '../systems/Theme';
 import type { Score } from '../systems/Score';
@@ -95,10 +95,7 @@ export class Renderer {
       const sprite = this.atlas.tintedObstacles.get(key) || this.atlas.obstacles.get(key);
       if (sprite) {
         const drawX = Math.round(obs.x);
-        // flyY>0: absolute top-Y; 0: ground-anchored
-        const drawY = obs.flyY > 0
-          ? Math.round(obs.flyY)
-          : Math.round(VIRTUAL.GROUND_Y - obs.height);
+        const drawY = Math.round(ObstaclePool.getTopY(obs));
         const halo = this.atlas.haloObstacles.get(key);
         if (halo) ctx.drawImage(halo, drawX - HALO, drawY - HALO);
         ctx.drawImage(sprite, drawX, drawY);
@@ -144,6 +141,11 @@ export class Renderer {
       // Draw frame 0 or last frame
       const frameIdx = player.rotationFrame % PLAYER_CONFIG.ROLL_FRAMES;
       this.drawWheelFrame(ctx, frameIdx, -size / 2, -size / 2);
+    } else if (player.ducking) {
+      // Squash the wheel flat against the ground
+      const frameIdx = player.rotationFrame % PLAYER_CONFIG.ROLL_FRAMES;
+      const h = PLAYER_CONFIG.DUCK_HEIGHT;
+      this.drawWheelFrame(ctx, frameIdx, drawX, Math.round(interpolatedY) - h, h);
     } else {
       const frameIdx = player.rotationFrame % PLAYER_CONFIG.ROLL_FRAMES;
       this.drawWheelFrame(ctx, frameIdx, drawX, drawY);
@@ -152,21 +154,26 @@ export class Renderer {
     ctx.restore();
   }
 
-  /** Halo outline first, then the ink wheel frame on top. */
-  private drawWheelFrame(ctx: CanvasRenderingContext2D, frameIdx: number, x: number, y: number): void {
+  /** Halo outline first, then the ink wheel frame on top. `h` squashes the
+   *  frame vertically (ducking). */
+  private drawWheelFrame(
+    ctx: CanvasRenderingContext2D, frameIdx: number, x: number, y: number,
+    h: number = PLAYER_CONFIG.SPRITE_SIZE,
+  ): void {
     const size = PLAYER_CONFIG.SPRITE_SIZE;
     const haloSize = size + HALO * 2;
+    const scaleY = h / size;
     // Halo atlas frames are stacked with the same stride as the wheel atlas,
     // offset by HALO; frame i starts at i*size + HALO - HALO = i*size.
     ctx.drawImage(
       this.atlas.haloWheelAtlas,
       frameIdx * size, 0, haloSize, haloSize,
-      x - HALO, y - HALO, haloSize, haloSize
+      x - HALO, y - HALO * scaleY, haloSize, haloSize * scaleY
     );
     ctx.drawImage(
       this.atlas.tintedWheelAtlas,
       frameIdx * size, 0, size, size,
-      x, y, size, size
+      x, y, size, h
     );
   }
 
