@@ -7,6 +7,7 @@
   --ink: #2a1e14;
   --border-width: 2px;
   --font-stack: 'Press Start 2P', 'Courier New', Courier, monospace;
+  --font-brand: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 * {
@@ -139,8 +140,9 @@ html, body {
   background: var(--paper);
   border: var(--border-width) solid var(--ink);
   padding: 24px 28px;
-  max-width: 90vw;
-  width: 440px;
+  width: min(440px, 92vw);
+  max-height: 92dvh;
+  overflow-y: auto;
   text-align: center;
   box-shadow: 6px 6px 0px var(--ink);
   display: flex;
@@ -171,6 +173,30 @@ html, body {
 @keyframes cardPop {
   0% { transform: scale(0.95); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
+}
+
+/* ── TEDx wordmark ───────────────────────────────────────────────────────── */
+
+.tedx-wordmark {
+  font-family: var(--font-brand);
+  font-weight: 900;
+  font-size: 22px;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.tedx-wordmark-small {
+  font-size: 15px;
+}
+
+.tedx-ted {
+  color: #eb0028;
+}
+
+.tedx-x {
+  font-weight: 700;
+  font-size: 0.85em;
 }
 
 /* ── Typography ─────────────────────────────────────────────────────────── */
@@ -237,7 +263,7 @@ html, body {
 .hero-wheel-container {
   width: 48px;
   height: 48px;
-  margin: 8px 0;
+  margin: 2px 0;
   position: relative;
 }
 
@@ -540,4 +566,44 @@ input[type="text"]:focus {
   .hero-title { font-size: 20px; }
   .card, .modal-card { width: 94vw; padding: 16px 18px; }
   .score-value { font-size: 16px; }
+}
+
+/* ── Phone tweaks ────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .card {
+    padding: 18px 16px;
+  }
+  .hero-title {
+    font-size: 22px;
+    letter-spacing: 3px;
+  }
+  .cta-prompt {
+    font-size: 9px;
+  }
+  .btn {
+    padding: 10px 12px;
+    font-size: 10px;
+  }
+}
+
+/* Short landscape viewports (phones sideways): compact the start card */
+@media (max-height: 460px) {
+  .card {
+    padding: 12px 20px;
+    gap: 8px;
+  }
+  .tedx-wordmark {
+    font-size: 18px;
+  }
+  .hero-wheel-container {
+    display: none;
+  }
+  .hero-title {
+    font-size: 20px;
+    margin-top: 0;
+  }
+  .btn-large {
+    padding: 9px 16px;
+  }
 }

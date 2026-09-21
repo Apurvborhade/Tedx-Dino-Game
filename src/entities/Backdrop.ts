@@ -6,8 +6,9 @@
 import { VIRTUAL } from '../config';
 import type { Era } from './Ground';
 
-const PARALLAX = 0.15; // fraction of world speed the plate scrolls at
-/** Paper-coloured haze laid over the plates so ink sprites stay readable */
+const PARALLAX = 0.15; // fraction of world speed the distant skyline scrolls at
+/** Paper-coloured haze over the skyline (above the ground line) so ink
+ *  sprites stay readable. The wall the wheel rolls on is left untouched. */
 const VEIL_ALPHA = 0.38;
 
 export interface TimeOfDay {
@@ -37,8 +38,10 @@ interface Plate {
 export class Backdrop {
   private plates: Record<PlateName, Plate>;
 
-  /** Scroll offset in virtual px (unbounded; wrapped per plate at draw time) */
+  /** Skyline scroll offset in virtual px (unbounded; wrapped per plate at draw time) */
   offset = 0;
+  /** Wall scroll offset — moves at full world speed so the wheel visibly rolls on it */
+  groundOffset = 0;
 
   private currentEra: Era = 'PAST';
 
@@ -96,10 +99,12 @@ export class Backdrop {
 
   update(dt: number, worldSpeed: number): void {
     this.offset += worldSpeed * PARALLAX * dt;
+    this.groundOffset += worldSpeed * dt;
   }
 
   reset(): void {
     this.offset = 0;
+    this.groundOffset = 0;
     this.currentEra = 'PAST';
   }
 
@@ -112,20 +117,33 @@ export class Backdrop {
     // Plates are painted, not 1-bit sprites — let them scale smoothly.
     ctx.imageSmoothingEnabled = true;
 
-    if (nightFactor < 1) this.drawTiled(ctx, this.plates.day, 1);
-    if (nightFactor > 0) this.drawTiled(ctx, this.plates.night, nightFactor);
-
-    // Push the painting back so obstacles and the wheel read at a glance
+    // Skyline (above the ground line): slow parallax + haze
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, VIRTUAL.WIDTH, VIRTUAL.GROUND_Y);
+    ctx.clip();
+    if (nightFactor < 1) this.drawTiled(ctx, this.plates.day, 1, this.offset);
+    if (nightFactor > 0) this.drawTiled(ctx, this.plates.night, nightFactor, this.offset);
     ctx.globalAlpha = VEIL_ALPHA;
     ctx.fillStyle = paper;
-    ctx.fillRect(0, 0, VIRTUAL.WIDTH, VIRTUAL.HEIGHT);
+    ctx.fillRect(0, 0, VIRTUAL.WIDTH, VIRTUAL.GROUND_Y);
+    ctx.restore();
+
+    // Wall (ground line and below): full speed, full opacity
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, VIRTUAL.GROUND_Y, VIRTUAL.WIDTH, VIRTUAL.HEIGHT - VIRTUAL.GROUND_Y);
+    ctx.clip();
+    if (nightFactor < 1) this.drawTiled(ctx, this.plates.day, 1, this.groundOffset);
+    if (nightFactor > 0) this.drawTiled(ctx, this.plates.night, nightFactor, this.groundOffset);
+    ctx.restore();
 
     ctx.restore();
   }
 
   /** Blit the pre-baked strip (plate + its mirror) so the non-seamless
    *  painting wraps without a visible cut. At most two draw calls. */
-  private drawTiled(ctx: CanvasRenderingContext2D, plate: Plate, alpha: number): void {
+  private drawTiled(ctx: CanvasRenderingContext2D, plate: Plate, alpha: number, offset: number): void {
     if (!plate.ready || alpha <= 0) return;
 
     ctx.save();
@@ -133,7 +151,7 @@ export class Backdrop {
 
     // Each plate wraps on its own period since draw widths differ slightly.
     const period = plate.tileW * 2;
-    const x = -(this.offset % period);
+    const x = -(offset % period);
     const strip = plate.strip;
     ctx.drawImage(strip, x, 0, period, VIRTUAL.HEIGHT);
     if (x + period < VIRTUAL.WIDTH) {

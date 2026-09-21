@@ -2,7 +2,7 @@
 // ObstacleSpawner.ts — Spawn timing, type selection, spacing guarantees
 // ════════════════════════════════════════════════════════════════════════════
 
-import { SPAWN, OBSTACLE_TYPES, VIRTUAL, PHYSICS, FLYERS, type ObstacleTypeName } from '../config';
+import { SPAWN, OBSTACLE_TYPES, VIRTUAL, PHYSICS, FLYERS, HARD_MODE, type ObstacleTypeName } from '../config';
 import { Rng } from '../core/Rng';
 import { ObstaclePool } from './Obstacle';
 
@@ -55,10 +55,13 @@ export class ObstacleSpawner {
   }
 
   private spawnObstacle(pool: ObstaclePool, worldSpeed: number, score: number): void {
+    const hard = score >= HARD_MODE.START_SCORE;
+
     // ── Flyer check ──────────────────────────────────────────────────────────
-    if (score >= FLYERS.MIN_SCORE && this.rng.chance(FLYERS.FLYER_CHANCE)) {
+    const flyerChance = hard ? HARD_MODE.FLYER_CHANCE : FLYERS.FLYER_CHANCE;
+    if (score >= FLYERS.MIN_SCORE && this.rng.chance(flyerChance)) {
       this.spawnFlyer(pool);
-      const gap = this.calculateGap(worldSpeed, 'TIME_BIRD', false);
+      const gap = this.calculateGap(worldSpeed, 'TIME_BIRD', false, hard);
       this.nextSpawnX += OBSTACLE_TYPES.TIME_BIRD.width + gap;
       return;
     }
@@ -86,10 +89,11 @@ export class ObstacleSpawner {
 
     // Cluster logic
     let isCluster = false;
+    const clusterChance = hard ? HARD_MODE.CLUSTER_CHANCE : SPAWN.CLUSTER_CHANCE;
     if (score >= SPAWN.CLUSTER_MIN_SCORE &&
         !this.lastWasCluster &&
         this.consecutiveClusterCount < 2 &&
-        this.rng.chance(SPAWN.CLUSTER_CHANCE)) {
+        this.rng.chance(clusterChance)) {
       // Spawn second obstacle close by
       const clusterGap = this.rng.range(20, 34);
       const clusterType = this.rng.pick(eligibleTypes);
@@ -103,7 +107,7 @@ export class ObstacleSpawner {
     this.lastWasCluster = isCluster;
 
     // Calculate next gap
-    const gap = this.calculateGap(worldSpeed, type, isCluster);
+    const gap = this.calculateGap(worldSpeed, type, isCluster, hard);
     const obstacleEndX = isCluster
       ? this.nextSpawnX + OBSTACLE_TYPES[type].width + 34 + OBSTACLE_TYPES[type].width
       : this.nextSpawnX + OBSTACLE_TYPES[type].width;
@@ -127,9 +131,10 @@ export class ObstacleSpawner {
     pool.spawn('TIME_BIRD', this.nextSpawnX, variant, flyY);
   }
 
-  private calculateGap(worldSpeed: number, _type: ObstacleTypeName, _isCluster: boolean): number {
-    // Base gap scaled by speed
-    const baseGap = SPAWN.MIN_GAP_PX + worldSpeed * SPAWN.GAP_SPEED_FACTOR * this.rng.range(0.8, 1.6);
+  private calculateGap(worldSpeed: number, _type: ObstacleTypeName, _isCluster: boolean, hard = false): number {
+    // Base gap scaled by speed (tighter after the first night)
+    const factor = hard ? HARD_MODE.GAP_SPEED_FACTOR : SPAWN.GAP_SPEED_FACTOR;
+    const baseGap = SPAWN.MIN_GAP_PX + worldSpeed * factor * this.rng.range(0.8, 1.6);
 
     // Compute minimum clearable gap from physics
     const minClearableGap = this.getMinClearableGap(worldSpeed);

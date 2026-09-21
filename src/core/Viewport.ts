@@ -2,13 +2,15 @@
 // Viewport.ts — Canvas sizing, DPR, integer scaling, safe-area math
 // ════════════════════════════════════════════════════════════════════════════
 
-import { VIRTUAL } from '../config';
+import { VIRTUAL, VIEWPORT } from '../config';
 
 export class Viewport {
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
   scale = 1;
   dpr = 1;
+  /** Virtual px of world actually shown (≤ VIRTUAL.WIDTH; cropped in portrait) */
+  visibleWidth: number = VIRTUAL.WIDTH;
   cssWidth: number = VIRTUAL.WIDTH;
   cssHeight: number = VIRTUAL.HEIGHT;
   containerWidth = window.innerWidth;
@@ -47,26 +49,38 @@ export class Viewport {
 
     this.dpr = Math.min(window.devicePixelRatio || 1, 2);
 
+    // Portrait phones: the full 640px world would render tiny, so crop the
+    // right side of the world until each virtual px is at least
+    // PORTRAIT_MIN_SCALE CSS px. Obstacles still spawn at VIRTUAL.WIDTH and
+    // simply enter view a little later.
+    let visibleW: number = VIRTUAL.WIDTH;
+    if (this.containerHeight > this.containerWidth) {
+      visibleW = Math.round(this.containerWidth / VIEWPORT.PORTRAIT_MIN_SCALE);
+      visibleW = Math.max(VIEWPORT.MIN_VISIBLE_WIDTH, Math.min(VIRTUAL.WIDTH, visibleW));
+    }
+    this.visibleWidth = visibleW;
+
     // Compute largest integer scale that fits
-    const scaleX = this.containerWidth / VIRTUAL.WIDTH;
+    const scaleX = this.containerWidth / visibleW;
     const scaleY = this.containerHeight / VIRTUAL.HEIGHT;
     let s = Math.min(scaleX, scaleY);
 
-    // Floor to integer when >= 1 for crisp pixels
-    if (s >= 1) {
+    // Floor to integer when >= 2 for crisp pixels. Between 1 and 2 (landscape
+    // phones, small windows) flooring to 1 wastes too much screen, so allow a
+    // fractional scale there and just snap it to whole device pixels.
+    if (s >= 2) {
       s = Math.floor(s);
     } else {
-      // Sub-1: snap to whole device pixels
-      s = Math.floor(s * this.dpr * VIRTUAL.WIDTH) / (this.dpr * VIRTUAL.WIDTH);
+      s = Math.floor(s * this.dpr * visibleW) / (this.dpr * visibleW);
       if (s <= 0) s = scaleX; // fallback: just fit width
     }
 
     this.scale = s;
-    this.cssWidth = Math.round(VIRTUAL.WIDTH * s);
+    this.cssWidth = Math.round(visibleW * s);
     this.cssHeight = Math.round(VIRTUAL.HEIGHT * s);
 
     // Set canvas backing store
-    this.canvas.width = Math.round(VIRTUAL.WIDTH * s * this.dpr);
+    this.canvas.width = Math.round(visibleW * s * this.dpr);
     this.canvas.height = Math.round(VIRTUAL.HEIGHT * s * this.dpr);
 
     // CSS size

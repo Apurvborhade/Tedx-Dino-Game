@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Difficulty } from '../src/systems/Difficulty';
-import { SPEED } from '../src/config';
+import { SPEED, HARD_MODE } from '../src/config';
 import { getJumpArcLength } from '../src/entities/ObstacleSpawner';
 
 describe('Difficulty & Spawn Curves', () => {
@@ -29,5 +29,22 @@ describe('Difficulty & Spawn Curves', () => {
     const maxScore30s = Difficulty.maxScoreForDuration(30000);
     expect(maxScore30s).toBeGreaterThan(200);
     expect(maxScore30s).toBeLessThan(1500);
+  });
+
+  it('adds the hard-mode speed bonus after the first night, ramped in', () => {
+    const easy = new Difficulty();
+    const hard = new Difficulty();
+    for (let i = 0; i < 60 * 120; i++) {
+      easy.update(1 / 120, 0);
+      hard.update(1 / 120, HARD_MODE.START_SCORE);
+    }
+    expect(hard.hard).toBe(true);
+    expect(easy.hard).toBe(false);
+    expect(hard.speed - easy.speed).toBeCloseTo(HARD_MODE.SPEED_BONUS, 1);
+
+    // Ramp: right after crossing the threshold the bonus is still small
+    const fresh = new Difficulty();
+    fresh.update(1 / 120, HARD_MODE.START_SCORE);
+    expect(fresh.speed - Difficulty.speedAtTime(1 / 120)).toBeLessThan(HARD_MODE.SPEED_BONUS * 0.1);
   });
 });

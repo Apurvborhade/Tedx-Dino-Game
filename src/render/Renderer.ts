@@ -42,7 +42,7 @@ export class Renderer {
 
   render(
     player: Player,
-    ground: Ground,
+    _ground: Ground,
     obstacles: ObstaclePool,
     backdrop: Backdrop,
     theme: Theme,
@@ -84,8 +84,8 @@ export class Renderer {
     // 2. Painted backdrop plates (day ⇄ night crossfade by score cycle)
     backdrop.draw(ctx, theme.nightFactor, theme.palette.paper);
 
-    // 3. Ground (baseline + era glyphs)
-    ground.draw(ctx, theme.palette.ink);
+    // 3. Ground — the painted wall in the backdrop is the floor now; no ink
+    //    baseline is drawn over it.
 
     // 4. Obstacles (ground and flying)
     const activeObs = obstacles.getActive();
@@ -188,7 +188,7 @@ export class Renderer {
     const digitWidth = PixelFont.measureWidth(scoreStr, scoreScale);
     const hiWidth    = PixelFont.measureWidth(hiScoreStr, hiScale);
 
-    const rightMargin = VIRTUAL.WIDTH - 8;
+    const rightMargin = this.viewport.visibleWidth - 8;
     const topMargin   = 8;
 
     // Draw Current Score (respecting milestone flash visibility)

@@ -166,7 +166,9 @@ function renderWheelFrame(size: number, frame: number, totalFrames: number): Ima
       const dx = x - center;
       const dy = y - center;
       const r = Math.sqrt(dx * dx + dy * dy);
-      const theta = Math.atan2(dy, dx) + angle;
+      // Subtracting the frame angle turns the pattern clockwise on screen
+      // (y-down), matching a wheel rolling to the right.
+      const theta = Math.atan2(dy, dx) - angle;
 
       let ink = false;
 

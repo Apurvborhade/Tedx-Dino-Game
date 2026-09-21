@@ -187,8 +187,11 @@ export class Game {
     }
 
     // 2. Difficulty & world speed
-    const diffResult = this.difficulty.update(dt);
+    const diffResult = this.difficulty.update(dt, this.score.value);
     if (diffResult.speedChanged && Math.floor(this.difficulty.speed) % 100 === 0) {
+      this.audio.playSpeedUp();
+    }
+    if (diffResult.hardModeStarted) {
       this.audio.playSpeedUp();
     }
     const worldSpeed = this.difficulty.speed;

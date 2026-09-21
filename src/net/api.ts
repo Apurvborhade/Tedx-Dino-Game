@@ -61,9 +61,21 @@ export class ApiClient {
 
       clearTimeout(timeoutId);
 
+      // 4xx = the server rejected this run (bad name, implausible score…).
+      // That's final — surface it, don't queue it or fake a rank.
+      if (res.status >= 400 && res.status < 500) {
+        let message = 'SUBMISSION REJECTED';
+        try {
+          const body = await res.json();
+          if (typeof body?.error === 'string') message = body.error.toUpperCase();
+        } catch {
+          // keep generic message
+        }
+        return { success: false, rank: 0, isTop10: false, error: message };
+      }
+
       if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || `HTTP ${res.status}`);
+        throw new Error(`HTTP ${res.status}`);
       }
 
       const data = await res.json();
@@ -73,10 +85,11 @@ export class ApiClient {
         isTop10: (data.rank ?? 1) <= 10,
       };
     } catch (err: unknown) {
+      // Network error / timeout / 5xx: keep the run and retry on next boot.
       clearTimeout(timeoutId);
       console.warn('[API] Submission failed, queuing offline:', err);
       this.enqueueOffline({ name, score, token, timestamp: Date.now() });
-      return this.mockSubmit(name, score);
+      return { success: false, rank: 0, isTop10: false, error: 'NETWORK ERROR (QUEUED)' };
     }
   }
 
@@ -92,7 +105,7 @@ export class ApiClient {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
       const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
       const res = await fetch(
-        `${supabaseUrl}/rest/v1/scores?select=name,score&order=score.desc&limit=10`,
+        `${supabaseUrl}/rest/v1/leaderboard?select=name,score&order=score.desc&limit=10`,
         {
           headers: {
             'apikey': anonKey,
@@ -115,9 +128,10 @@ export class ApiClient {
         rank: idx + 1,
       }));
     } catch (err) {
+      // Live mode: never show the seeded demo names as if they were real.
       clearTimeout(timeoutId);
-      console.warn('[API] Fetch leaderboard failed, using fallback:', err);
-      return this.mockLeaderboard();
+      console.warn('[API] Fetch leaderboard failed:', err);
+      throw err instanceof Error ? err : new Error(String(err));
     }
   }
 

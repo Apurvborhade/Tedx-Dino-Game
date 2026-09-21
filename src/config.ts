@@ -9,6 +9,14 @@ export const VIRTUAL = {
   GROUND_Y: 196,
 } as const;
 
+export const VIEWPORT = {
+  /** In portrait, show a narrower slice of the world so 1 virtual px maps to
+   *  at least this many CSS px (bigger sprites on phones). */
+  PORTRAIT_MIN_SCALE: 0.85,
+  /** Never crop the visible world narrower than this (virtual px) */
+  MIN_VISIBLE_WIDTH: 400,
+} as const;
+
 export const PHYSICS = {
   GRAVITY: 2600,
   JUMP_VELOCITY: -600,
@@ -48,6 +56,21 @@ export const THEME_THRESHOLDS = {
   CYCLE_LENGTH: 1400,
   /** Seconds for the day ⇄ night crossfade (backdrop + palette) */
   TRANSITION_DURATION: 0.6,
+} as const;
+
+/** After the first nightfall the run tightens up: faster cap, tighter gaps,
+ *  more clusters and flyers. Applies for the rest of the run (doesn't ease
+ *  back when day returns). */
+export const HARD_MODE = {
+  /** Score at which hard mode kicks in — same as the first night */
+  START_SCORE: THEME_THRESHOLDS.NIGHT_START,
+  /** Extra px/s added on top of the normal speed curve */
+  SPEED_BONUS: 50,
+  /** Seconds to blend the speed bonus in (no sudden jerk) */
+  RAMP_SECONDS: 4,
+  GAP_SPEED_FACTOR: 0.42,
+  CLUSTER_CHANCE: 0.28,
+  FLYER_CHANCE: 0.35,
 } as const;
 
 export const PLAYER_CONFIG = {
