@@ -1,0 +1,14 @@
+{
+  // Static-asset-only Worker: no server code, just dist/ on Cloudflare's edge.
+  // `npx wrangler deploy` uploads the build; without this file wrangler tries
+  // to scaffold a Workers+Vite project instead.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tedx-dino-game",
+  "compatibility_date": "2026-09-21",
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./dist",
+    // Any unknown path serves the game rather than a 404 page.
+    "not_found_handling": "single-page-application"
+  }
+}
