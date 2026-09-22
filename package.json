@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "deploy": "npm run build && npx wrangler pages deploy dist --project-name kalachakra",
+    "loadtest": "node scripts/loadtest.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.3",

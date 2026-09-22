@@ -41,6 +41,24 @@ npm run build
 ```
 The output will be built into the `dist/` directory, ready to deploy to Vercel, Netlify, Cloudflare Pages, or GitHub Pages.
 
+### 5. Deploy (Cloudflare Pages, free)
+```bash
+npx wrangler login      # once, opens the browser
+npm run deploy          # build + upload dist/ → https://kalachakra.pages.dev
+```
+The site is fully static (~20 KB gzipped + ~105 KB of backdrops); the only
+per-player server work is the Supabase leaderboard. `public/_headers` sets
+immutable caching for the fingerprinted `/assets` bundle.
+
+### 6. Load test
+```bash
+npm run loadtest -- --url https://kalachakra.pages.dev --users 100 --duration 90 [--submit]
+```
+Simulates N concurrent players (page load burst, runs, leaderboard polling
+and — with `--submit` — Edge Function score submissions under names
+`LOADTEST0..19`). Clean those up afterwards in the Supabase SQL editor:
+`delete from scores where name like 'LOADTEST%';`
+
 ---
 
 ## 🎮 Controls
