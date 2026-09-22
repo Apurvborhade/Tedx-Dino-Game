@@ -83,10 +83,9 @@ export class ObstaclePool {
     return this.active;
   }
 
-  /** Absolute top edge: hanging types drop from y=0, flyers carry their own
-   *  top, everything else stands on the ground. */
+  /** Absolute top edge: flyers carry their own top, everything else stands
+   *  on the ground. */
   static getTopY(ob: ObstacleData, groundY: number = VIRTUAL.GROUND_Y): number {
-    if (OBSTACLE_TYPES[ob.type].isHanging) return 0;
     return ob.flyY > 0 ? ob.flyY : groundY - ob.height;
   }
 

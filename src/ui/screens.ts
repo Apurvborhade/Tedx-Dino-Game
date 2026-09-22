@@ -46,7 +46,7 @@ export class ScreenManager {
             <div class="hero-wheel-icon"></div>
           </div>
           <div class="cta-prompt pulse">TAP SCREEN OR PRESS SPACE TO START</div>
-          <div class="hero-subtitle">TAP · SPACE = JUMP &nbsp;&nbsp; SWIPE DOWN · ↓ = DUCK</div>
+          <div class="hero-subtitle">TAP · SPACE = JUMP &nbsp;&nbsp; HOLD = HIGHER</div>
           <div class="button-row">
             <button type="button" class="btn btn-secondary" id="ready-lb-btn">LEADERBOARD</button>
             <button type="button" class="btn btn-icon" id="ready-sound-btn" title="Toggle Sound">🔊</button>

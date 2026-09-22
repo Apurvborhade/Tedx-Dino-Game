@@ -237,7 +237,7 @@ function cleanupIsolated(data: Uint8ClampedArray, w: number, h: number): void {
 function generateAllObstacles(): Map<string, HTMLCanvasElement> {
   const map = new Map<string, HTMLCanvasElement>();
 
-  const types: ObstacleTypeName[] = ['STONE_SMALL', 'STONE_TALL', 'PILLAR_BROKEN', 'THORN_CLUSTER', 'TIME_BIRD', 'HANGING_GATE', 'OBELISK'];
+  const types: ObstacleTypeName[] = ['STONE_SMALL', 'STONE_TALL', 'PILLAR_BROKEN', 'THORN_CLUSTER', 'TIME_BIRD', 'OBELISK'];
 
   for (const type of types) {
     for (let variant = 0; variant < 3; variant++) {
@@ -276,9 +276,6 @@ function generateObstacle(type: ObstacleTypeName, variant: number): HTMLCanvasEl
       break;
     case 'TIME_BIRD':
       drawTimeBird(ctx, w, h, variant);
-      break;
-    case 'HANGING_GATE':
-      drawHangingGate(ctx, w, h, rng);
       break;
     case 'OBELISK':
       drawObelisk(ctx, w, h, rng);
@@ -365,24 +362,6 @@ function drawThornCluster(ctx: CanvasRenderingContext2D, _w: number, _h: number,
       const rowX = tx + Math.floor((baseW - rowWidth) / 2);
       ctx.fillRect(rowX, baseY - th + row, rowWidth, 1);
     }
-  }
-}
-
-function drawHangingGate(ctx: CanvasRenderingContext2D, w: number, h: number, rng: Rng): void {
-  // Chain from the sky: two dotted strands
-  const blockH = 34;
-  const chainBottom = h - blockH;
-  for (let y = 0; y < chainBottom; y += 3) {
-    ctx.fillRect(5, y, 2, 2);
-    ctx.fillRect(w - 7, y, 2, 2);
-  }
-  // Suspended stone gate block with a carved slot and a jagged underside
-  ctx.fillRect(1, chainBottom, w - 2, blockH - 4);
-  ctx.fillRect(0, chainBottom + 2, w, 3);
-  ctx.clearRect(Math.floor(w / 2) - 2, chainBottom + 9, 4, 12);
-  const jag = [0, 2, 1, 3, 0, 2, 1, 2];
-  for (let x = 1; x < w - 1; x++) {
-    ctx.fillRect(x, h - 4, 1, jag[(x + rng.int(0, 1)) % jag.length]! + 1);
   }
 }
 

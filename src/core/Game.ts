@@ -139,7 +139,7 @@ export class Game {
         this.startRun();
         return;
       }
-      this.player.update(dt, false, 30, false);
+      this.player.update(dt, false, 30);
       this.backdrop.update(dt, 30);
       this.ground.update(dt, 30);
       return;
@@ -216,7 +216,7 @@ export class Game {
     }
 
     // 5. Player physics
-    this.player.update(dt, this.input.jumpHeld, worldSpeed, this.input.duckHeld);
+    this.player.update(dt, this.input.jumpHeld, worldSpeed);
 
     // 6. Ground & Backdrop parallax
     this.ground.update(dt, worldSpeed);

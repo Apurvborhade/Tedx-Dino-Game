@@ -49,7 +49,6 @@ The output will be built into the `dist/` directory, ready to deploy to Vercel, 
 | :--- | :--- | :--- |
 | **Jump** | `Space` / `Arrow Up` | Tap screen |
 | **High Jump** | Hold `Space` | Long press screen |
-| **Duck / Fast Fall** | `Arrow Down` / `S` | Swipe down (hold) |
 | **Mute / Unmute** | HUD / Audio button | Tap Mute icon |
 | **Restart** | `Space` / Click Button | Tap 'Run Again' |
 

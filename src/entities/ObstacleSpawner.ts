@@ -6,7 +6,7 @@ import { SPAWN, OBSTACLE_TYPES, VIRTUAL, PHYSICS, FLYERS, HARD_MODE, type Obstac
 import { Rng } from '../core/Rng';
 import { ObstaclePool } from './Obstacle';
 
-const TYPE_NAMES: readonly ObstacleTypeName[] = ['STONE_SMALL', 'STONE_TALL', 'PILLAR_BROKEN', 'THORN_CLUSTER', 'HANGING_GATE', 'OBELISK'] as const;
+const TYPE_NAMES: readonly ObstacleTypeName[] = ['STONE_SMALL', 'STONE_TALL', 'PILLAR_BROKEN', 'THORN_CLUSTER', 'OBELISK'] as const;
 
 /** Maximum number of variants per obstacle type */
 const MAX_VARIANTS = 3;
@@ -87,22 +87,20 @@ export class ObstacleSpawner {
     this.lastTypes.push(type);
     if (this.lastTypes.length > 3) this.lastTypes.shift();
 
-    // Cluster logic. A hanging gate never clusters: ducking under it and
-    // then jumping a stone 30px later isn't humanly possible.
+    // Cluster logic: a second obstacle close enough that one jump clears both
     let isCluster = false;
+    let obstacleEndX = this.nextSpawnX + OBSTACLE_TYPES[type].width;
     const clusterChance = hard ? HARD_MODE.CLUSTER_CHANCE : SPAWN.CLUSTER_CHANCE;
-    const clusterable = eligibleTypes.filter(t => !OBSTACLE_TYPES[t].isHanging);
     if (score >= SPAWN.CLUSTER_MIN_SCORE &&
-        !OBSTACLE_TYPES[type].isHanging &&
-        clusterable.length > 0 &&
         !this.lastWasCluster &&
         this.consecutiveClusterCount < 2 &&
         this.rng.chance(clusterChance)) {
-      // Spawn second obstacle close by
       const clusterGap = this.rng.range(20, 34);
-      const clusterType = this.rng.pick(clusterable);
+      const clusterType = this.rng.pick(eligibleTypes);
       const clusterVariant = this.rng.int(0, MAX_VARIANTS - 1);
-      pool.spawn(clusterType, this.nextSpawnX + OBSTACLE_TYPES[type].width + clusterGap, clusterVariant);
+      const clusterX = obstacleEndX + clusterGap;
+      pool.spawn(clusterType, clusterX, clusterVariant);
+      obstacleEndX = clusterX + OBSTACLE_TYPES[clusterType].width;
       isCluster = true;
       this.consecutiveClusterCount++;
     } else {
@@ -112,23 +110,13 @@ export class ObstacleSpawner {
 
     // Calculate next gap
     const gap = this.calculateGap(worldSpeed, type, isCluster, hard);
-    const obstacleEndX = isCluster
-      ? this.nextSpawnX + OBSTACLE_TYPES[type].width + 34 + OBSTACLE_TYPES[type].width
-      : this.nextSpawnX + OBSTACLE_TYPES[type].width;
     this.nextSpawnX = obstacleEndX + gap;
   }
 
   private spawnFlyer(pool: ObstaclePool): void {
-    // Pick altitude: LOW (18px), MID (34px trap), HIGH (52px)
-    const roll = this.rng.range(0, 1);
-    let altitudeAboveGround: number;
-    if (roll < 0.33) {
-      altitudeAboveGround = FLYERS.LOW_Y;
-    } else if (roll < 0.66) {
-      altitudeAboveGround = FLYERS.MID_Y;
-    } else {
-      altitudeAboveGround = FLYERS.HIGH_Y;
-    }
+    // Pick altitude: LOW (ground-skimming) or HIGH (wing height); both are
+    // below the grounded hitbox, so either way the bird must be jumped.
+    const altitudeAboveGround = this.rng.chance(0.5) ? FLYERS.LOW_Y : FLYERS.HIGH_Y;
     // flyY = absolute top-Y of sprite in virtual coords
     const flyY = VIRTUAL.GROUND_Y - altitudeAboveGround - OBSTACLE_TYPES.TIME_BIRD.height;
     const variant = this.rng.int(0, MAX_VARIANTS - 1);

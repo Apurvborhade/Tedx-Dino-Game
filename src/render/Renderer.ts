@@ -141,11 +141,6 @@ export class Renderer {
       // Draw frame 0 or last frame
       const frameIdx = player.rotationFrame % PLAYER_CONFIG.ROLL_FRAMES;
       this.drawWheelFrame(ctx, frameIdx, -size / 2, -size / 2);
-    } else if (player.ducking) {
-      // Squash the wheel flat against the ground
-      const frameIdx = player.rotationFrame % PLAYER_CONFIG.ROLL_FRAMES;
-      const h = PLAYER_CONFIG.DUCK_HEIGHT;
-      this.drawWheelFrame(ctx, frameIdx, drawX, Math.round(interpolatedY) - h, h);
     } else {
       const frameIdx = player.rotationFrame % PLAYER_CONFIG.ROLL_FRAMES;
       this.drawWheelFrame(ctx, frameIdx, drawX, drawY);
@@ -154,26 +149,21 @@ export class Renderer {
     ctx.restore();
   }
 
-  /** Halo outline first, then the ink wheel frame on top. `h` squashes the
-   *  frame vertically (ducking). */
-  private drawWheelFrame(
-    ctx: CanvasRenderingContext2D, frameIdx: number, x: number, y: number,
-    h: number = PLAYER_CONFIG.SPRITE_SIZE,
-  ): void {
+  /** Halo outline first, then the ink wheel frame on top. */
+  private drawWheelFrame(ctx: CanvasRenderingContext2D, frameIdx: number, x: number, y: number): void {
     const size = PLAYER_CONFIG.SPRITE_SIZE;
     const haloSize = size + HALO * 2;
-    const scaleY = h / size;
     // Halo atlas frames are stacked with the same stride as the wheel atlas,
     // offset by HALO; frame i starts at i*size + HALO - HALO = i*size.
     ctx.drawImage(
       this.atlas.haloWheelAtlas,
       frameIdx * size, 0, haloSize, haloSize,
-      x - HALO, y - HALO * scaleY, haloSize, haloSize * scaleY
+      x - HALO, y - HALO, haloSize, haloSize
     );
     ctx.drawImage(
       this.atlas.tintedWheelAtlas,
       frameIdx * size, 0, size, size,
-      x, y, size, h
+      x, y, size, size
     );
   }
 

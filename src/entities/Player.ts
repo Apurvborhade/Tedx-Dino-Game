@@ -11,8 +11,6 @@ export class Player {
   velocityY = 0;
   onGround = true;
   isDead = false;
-  /** Squashed low to pass under hanging obstacles (ground only) */
-  ducking = false;
 
   // Jump hold tracking
   private holdTime = 0;
@@ -47,7 +45,6 @@ export class Player {
     this.velocityY = 0;
     this.onGround = true;
     this.isDead = false;
-    this.ducking = false;
     this.holdTime = 0;
     this.jumpHeld = false;
     this.timeSinceOnGround = 0;
@@ -65,25 +62,17 @@ export class Player {
 
     this.velocityY = PHYSICS.JUMP_VELOCITY;
     this.onGround = false;
-    this.ducking = false;
     this.jumpHeld = jumpHeld;
     this.holdTime = 0;
     this.timeSinceOnGround = Infinity; // consume coyote time
     return true;
   }
 
-  update(dt: number, jumpHeld: boolean, worldSpeed: number, duckHeld = false): void {
+  update(dt: number, jumpHeld: boolean, worldSpeed: number): void {
     if (this.isDead) return;
 
     this.prevY = this.y;
     this.jumpHeld = jumpHeld;
-
-    // Duck on the ground; in the air the same input slams the wheel down
-    this.ducking = this.onGround && duckHeld;
-    if (!this.onGround && duckHeld && this.velocityY < PLAYER_CONFIG.FAST_FALL_VELOCITY) {
-      this.velocityY = PLAYER_CONFIG.FAST_FALL_VELOCITY;
-      this.jumpHeld = false;
-    }
 
     // Update coyote timer
     if (this.onGround) {
@@ -148,15 +137,6 @@ export class Player {
   getHitbox(): { x: number; y: number; w: number; h: number } {
     const inset = PLAYER_CONFIG.HITBOX_INSET;
     const size = PLAYER_CONFIG.SPRITE_SIZE;
-    if (this.ducking) {
-      const h = PLAYER_CONFIG.DUCK_HEIGHT;
-      return {
-        x: this.x + inset,
-        y: this.y - h + 2,
-        w: size - inset * 2,
-        h: h - 4,
-      };
-    }
     return {
       x: this.x + inset,
       y: this.y - size + inset,
