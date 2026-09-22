@@ -9,6 +9,16 @@ import { LeaderboardView } from './Leaderboard';
 
 export type GameScreen = 'READY' | 'HUD' | 'GAME_OVER' | 'SUBMIT' | 'LEADERBOARD' | 'PAUSED' | 'HIDDEN';
 
+/** Where BACK on the leaderboard should land. The leaderboard is a modal over
+ *  whatever opened it, and the run's state machine is still sitting in that
+ *  state — dropping a finished run on the ready screen leaves both halves
+ *  disagreeing and nothing accepting input. */
+export function returnScreenFor(openedFrom: GameScreen): 'READY' | 'GAME_OVER' {
+  // SUBMIT chains into the leaderboard on success; its card belongs to a
+  // finished run, so it goes back to game over too.
+  return openedFrom === 'GAME_OVER' || openedFrom === 'SUBMIT' ? 'GAME_OVER' : 'READY';
+}
+
 export interface ScreenCallbacks {
   onStart: () => void;
   onRestart: () => void;
@@ -113,7 +123,10 @@ export class ScreenManager {
 
     this.leaderboardView = new LeaderboardView(this.leaderboardContainer, api, {
       onClose: () => {
-        if (this.currentScreen === 'LEADERBOARD') {
+        if (this.currentScreen !== 'LEADERBOARD') return;
+        if (this.returnScreen === 'GAME_OVER') {
+          this.showGameOver();
+        } else {
           this.showReady();
         }
       },
@@ -166,6 +179,8 @@ export class ScreenManager {
 
   private lastScore = 0;
   private lastToken: RunTokenPayload | null = null;
+  private lastIsNewBest = false;
+  private returnScreen: 'READY' | 'GAME_OVER' = 'READY';
 
   showReady(): void {
     this.setScreen('READY');
@@ -178,6 +193,7 @@ export class ScreenManager {
   showGameOver(score?: number, highScore?: number, isNewBest?: boolean, token?: RunTokenPayload): void {
     if (score !== undefined) this.lastScore = score;
     if (token !== undefined) this.lastToken = token;
+    if (isNewBest !== undefined) this.lastIsNewBest = isNewBest;
 
     if (score !== undefined) {
       const scoreEl = this.gameOverScreen.querySelector('#go-score')!;
@@ -189,7 +205,7 @@ export class ScreenManager {
     }
 
     const badge = this.gameOverScreen.querySelector('#new-best-badge')!;
-    if (isNewBest) {
+    if (this.lastIsNewBest) {
       badge.classList.remove('hidden');
     } else {
       badge.classList.add('hidden');
@@ -204,6 +220,7 @@ export class ScreenManager {
   }
 
   showLeaderboard(highlightRank?: number): void {
+    this.returnScreen = returnScreenFor(this.currentScreen);
     this.setScreen('LEADERBOARD');
     this.leaderboardView.open(highlightRank);
   }
@@ -242,5 +259,14 @@ export class ScreenManager {
 
   getCurrentScreen(): GameScreen {
     return this.currentScreen;
+  }
+
+  /** True when a jump press should start/restart a run. Both cards invite it
+   *  ("PRESS SPACE TO START" / "RUN AGAIN (SPACE)"), and accepting either one
+   *  regardless of the run state means a screen/state mismatch can never
+   *  strand the player on a card that ignores input. Modals (submit form,
+   *  leaderboard, pause) still swallow the key. */
+  acceptsStartInput(): boolean {
+    return this.currentScreen === 'READY' || this.currentScreen === 'GAME_OVER';
   }
 }

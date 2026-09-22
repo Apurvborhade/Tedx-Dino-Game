@@ -133,7 +133,7 @@ export class Game {
 
     if (this.state === 'READY') {
       if (
-        this.screens.getCurrentScreen() === 'READY' &&
+        this.screens.acceptsStartInput() &&
         (this.input.jumpPressed || this.input.hasBufferedJump())
       ) {
         this.input.consumeJump();
@@ -149,7 +149,7 @@ export class Game {
 
     if (this.state === 'GAME_OVER') {
       if (
-        this.screens.getCurrentScreen() === 'GAME_OVER' &&
+        this.screens.acceptsStartInput() &&
         (this.input.jumpPressed || this.input.hasBufferedJump())
       ) {
         this.input.consumeJump();
