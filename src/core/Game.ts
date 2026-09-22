@@ -97,6 +97,7 @@ export class Game {
     this.deathTimer = 0;
 
     this.player.reset();
+    this.player.x = this.viewport.playerX;
     this.obstacles.reset();
     this.spawner.reset(this.runSeed);
     this.score.reset();
@@ -139,6 +140,7 @@ export class Game {
         this.startRun();
         return;
       }
+      this.player.x = this.viewport.playerX;
       this.player.update(dt, false, 30);
       this.backdrop.update(dt, 30);
       this.ground.update(dt, 30);

@@ -11,10 +11,18 @@ export const VIRTUAL = {
 
 export const VIEWPORT = {
   /** In portrait, show a narrower slice of the world so 1 virtual px maps to
-   *  at least this many CSS px (bigger sprites on phones). */
-  PORTRAIT_MIN_SCALE: 0.85,
-  /** Never crop the visible world narrower than this (virtual px) */
-  MIN_VISIBLE_WIDTH: 400,
+   *  at least this many CSS px (bigger sprites on phones). A phone is only
+   *  ~390 CSS px wide, so this is the one lever on sprite size: showing less
+   *  world is the only way to draw it bigger. */
+  PORTRAIT_MIN_SCALE: 1.2,
+  /** Never crop the visible world narrower than this (virtual px). This is the
+   *  floor that keeps an obstacle on screen long enough to react to: at the
+   *  760px/s top speed it leaves ~0.34s between "enters view" and "hits". */
+  MIN_VISIBLE_WIDTH: 330,
+  /** Below this visible width the wheel moves closer to the left edge, buying
+   *  back some of the lookahead the zoom costs. */
+  NARROW_WIDTH: 480,
+  PORTRAIT_PLAYER_X: 40,
 } as const;
 
 export const PHYSICS = {

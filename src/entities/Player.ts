@@ -5,7 +5,7 @@
 import { PHYSICS, PLAYER_CONFIG, VIRTUAL } from '../config';
 
 export class Player {
-  x = PLAYER_CONFIG.X;
+  x: number = PLAYER_CONFIG.X;
   y = VIRTUAL.GROUND_Y;
   prevY = VIRTUAL.GROUND_Y;
   velocityY = 0;

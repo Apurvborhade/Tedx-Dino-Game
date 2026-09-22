@@ -2,7 +2,7 @@
 // Viewport.ts — Canvas sizing, DPR, integer scaling, safe-area math
 // ════════════════════════════════════════════════════════════════════════════
 
-import { VIRTUAL, VIEWPORT } from '../config';
+import { VIRTUAL, VIEWPORT, PLAYER_CONFIG } from '../config';
 
 export class Viewport {
   canvas: HTMLCanvasElement;
@@ -11,6 +11,9 @@ export class Viewport {
   dpr = 1;
   /** Virtual px of world actually shown (≤ VIRTUAL.WIDTH; cropped in portrait) */
   visibleWidth: number = VIRTUAL.WIDTH;
+  /** Where the wheel sits: closer to the left edge on a cropped portrait view
+   *  so there is still track visible ahead of it. */
+  playerX: number = PLAYER_CONFIG.X;
   cssWidth: number = VIRTUAL.WIDTH;
   cssHeight: number = VIRTUAL.HEIGHT;
   containerWidth = window.innerWidth;
@@ -59,6 +62,7 @@ export class Viewport {
       visibleW = Math.max(VIEWPORT.MIN_VISIBLE_WIDTH, Math.min(VIRTUAL.WIDTH, visibleW));
     }
     this.visibleWidth = visibleW;
+    this.playerX = visibleW < VIEWPORT.NARROW_WIDTH ? VIEWPORT.PORTRAIT_PLAYER_X : PLAYER_CONFIG.X;
 
     // Compute largest integer scale that fits
     const scaleX = this.containerWidth / visibleW;
