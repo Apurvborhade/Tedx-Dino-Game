@@ -161,18 +161,18 @@ export class ApiClient {
       }
     }
 
-    // Default seeded leaderboard for TEDxDYPDPU demo
+    // Default seeded leaderboard for the TEDxDYPDPU demo (offline mode only)
     return [
-      { name: 'CHRONOS', score: 1840, rank: 1 },
-      { name: 'ARYABHATTA', score: 1420, rank: 2 },
-      { name: 'KAALCHAKRA', score: 1190, rank: 3 },
-      { name: 'TEDXDYP', score: 980, rank: 4 },
-      { name: 'VORTEX', score: 750, rank: 5 },
-      { name: 'WHEEL_X', score: 540, rank: 6 },
-      { name: 'TIMEKEEPER', score: 430, rank: 7 },
-      { name: 'ECHO', score: 310, rank: 8 },
-      { name: 'NOVA', score: 220, rank: 9 },
-      { name: 'RUNNER', score: 150, rank: 10 },
+      { name: 'chronos', score: 1840, rank: 1 },
+      { name: 'aryabhatta', score: 1420, rank: 2 },
+      { name: 'kaalchakra', score: 1190, rank: 3 },
+      { name: 'tedxdypdpu', score: 980, rank: 4 },
+      { name: 'vortex', score: 750, rank: 5 },
+      { name: 'wheel_x', score: 540, rank: 6 },
+      { name: 'timekeeper', score: 430, rank: 7 },
+      { name: 'echo.runs', score: 310, rank: 8 },
+      { name: 'nova', score: 220, rank: 9 },
+      { name: 'runner', score: 150, rank: 10 },
     ];
   }
 

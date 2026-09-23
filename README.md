@@ -78,7 +78,9 @@ If enabling the live global leaderboard:
 
 1. Create a Supabase project.
 2. Run the migration script in `supabase/migrations/001_init.sql` in the Supabase SQL editor.
-3. Deploy the Edge function:
+3. Run `002`, `003` and `004` the same way (leaderboard view, index, and the
+   2-30 character Instagram handle constraint).
+4. Deploy the Edge function:
    ```bash
    supabase functions deploy submit-score --no-verify-jwt
    ```

@@ -33,12 +33,13 @@ export class LeaderboardView {
           <button type="button" class="icon-btn" id="lb-refresh-btn" title="Refresh">↻</button>
         </div>
         <p class="subtitle-text">TEDxDYPDPU • TOP RUNNERS</p>
+        <p class="giveaway-note">GIVEAWAY: YOU MUST FOLLOW <b>@TEDXDYPDPU</b> ON INSTAGRAM<br />ENTRIES FROM ACCOUNTS THAT DO NOT FOLLOW ARE NOT ELIGIBLE</p>
         <div class="leaderboard-table-wrapper" data-no-jump>
           <table class="leaderboard-table">
             <thead>
               <tr>
                 <th class="col-rank">#</th>
-                <th class="col-name">NAME</th>
+                <th class="col-name">INSTAGRAM</th>
                 <th class="col-score">SCORE</th>
               </tr>
             </thead>

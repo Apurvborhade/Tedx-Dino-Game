@@ -122,7 +122,6 @@ export const AUDIO_CONFIG = {
 
 export const LEADERBOARD_CONFIG = {
   TOP_N: 10,
-  NAME_MAX_LEN: 12,
   REFRESH_MS: 20000,
 } as const;
 

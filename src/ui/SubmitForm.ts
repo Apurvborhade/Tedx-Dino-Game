@@ -1,12 +1,14 @@
 // ════════════════════════════════════════════════════════════════════════════
-// SubmitForm.ts — Name input sanitization, validation, submission handling
+// SubmitForm.ts — Instagram handle input, validation, submission handling
 // ════════════════════════════════════════════════════════════════════════════
 
-import { LEADERBOARD_CONFIG } from '../config';
 import { safeGetItem, safeSetItem } from '../systems/storage';
+import { HANDLE_MAX_LEN, sanitizeHandle, validateHandle } from '../net/handle';
 import type { ApiClient } from '../net/api';
 import type { RunTokenPayload } from '../net/runToken';
 
+// Key kept from when this field was a display name: renaming it would drop
+// every returning player's saved value.
 const NAME_KEY = 'kalachakra.player_name';
 
 export class SubmitForm {
@@ -42,18 +44,21 @@ export class SubmitForm {
       <div class="modal-card">
         <h2 class="title-text">SUBMIT SCORE</h2>
         <div class="score-display-large" id="submit-score-val">000000</div>
-        <p class="subtitle-text">ENTER YOUR NAME FOR THE LEADERBOARD</p>
+        <p class="subtitle-text">ENTER YOUR INSTAGRAM ID FOR THE LEADERBOARD</p>
         <div class="input-wrapper">
           <input 
             type="text" 
             id="player-name-input" 
-            maxlength="${LEADERBOARD_CONFIG.NAME_MAX_LEN}" 
-            placeholder="YOUR NAME" 
+            maxlength="${HANDLE_MAX_LEN}" 
+            placeholder="@yourhandle" 
             autocomplete="off"
             autocorrect="off"
+            autocapitalize="off"
             spellcheck="false"
+            inputmode="text"
           />
         </div>
+        <p class="giveaway-note">FOLLOW <b>@TEDXDYPDPU</b> ON INSTAGRAM TO ENTER<br />NOT FOLLOWING = NOT ELIGIBLE FOR THE GIVEAWAY</p>
         <div class="form-status" id="submit-status"></div>
         <div class="button-row">
           <button type="button" class="btn btn-secondary" id="submit-cancel-btn">BACK</button>
@@ -72,13 +77,10 @@ export class SubmitForm {
   }
 
   private setupListeners(): void {
-    // Input sanitization: letters, numbers, spaces only, uppercase
+    // Input sanitization: Instagram's own character set, lowercase
     this.inputEl.addEventListener('input', () => {
-      const sanitized = this.inputEl.value
-        .toUpperCase()
-        .replace(/[^A-Z0-9 ]/g, '')
-        .slice(0, LEADERBOARD_CONFIG.NAME_MAX_LEN);
-      this.inputEl.value = sanitized;
+      const sanitized = sanitizeHandle(this.inputEl.value);
+      if (sanitized !== this.inputEl.value) this.inputEl.value = sanitized;
       this.statusEl.textContent = '';
     });
 
@@ -109,9 +111,9 @@ export class SubmitForm {
     this.submitBtn.disabled = false;
     this.submitBtn.textContent = 'SUBMIT';
 
-    // Pre-fill last used name
-    const savedName = safeGetItem(NAME_KEY) || '';
-    this.inputEl.value = savedName;
+    // Pre-fill the last handle. Anything saved back when this field was a
+    // display name gets sanitized here, or dropped if nothing survives.
+    this.inputEl.value = sanitizeHandle(safeGetItem(NAME_KEY) || '');
 
     setTimeout(() => {
       this.inputEl.focus();
@@ -121,9 +123,10 @@ export class SubmitForm {
   private async submit(): Promise<void> {
     if (this.isSubmitting || !this.currentToken) return;
 
-    const rawName = this.inputEl.value.trim();
-    if (rawName.length < 2) {
-      this.statusEl.textContent = 'NAME TOO SHORT (MIN 2 CHARS)';
+    const handle = sanitizeHandle(this.inputEl.value);
+    const problem = validateHandle(handle);
+    if (problem) {
+      this.statusEl.textContent = problem;
       return;
     }
 
@@ -132,11 +135,11 @@ export class SubmitForm {
     this.submitBtn.textContent = 'SENDING...';
     this.statusEl.textContent = '';
 
-    // Remember name
-    safeSetItem(NAME_KEY, rawName);
+    // Remember the handle
+    safeSetItem(NAME_KEY, handle);
 
     try {
-      const res = await this.api.submitScore(rawName, this.currentScore, this.currentToken);
+      const res = await this.api.submitScore(handle, this.currentScore, this.currentToken);
       if (res.success) {
         if (this.onSubmitSuccess) {
           this.onSubmitSuccess(res.rank, res.isTop10);

@@ -30,20 +30,29 @@ serve(async (req) => {
       });
     }
 
-    const cleanName = name.trim().toUpperCase();
+    // Instagram handles: lowercase, 2-30 chars of a-z 0-9 . _ , no leading or
+    // trailing dot and no two dots in a row. Mirrors src/net/handle.ts — this
+    // file cannot import it, so keep the two in step.
+    const cleanName = name.trim().toLowerCase().replace(/^@+/, '');
 
-    // 2. Name validation: 2-12 chars, alphanumeric + space
-    if (cleanName.length < 2 || cleanName.length > 12 || !/^[A-Z0-9 ]+$/.test(cleanName)) {
-      return new Response(JSON.stringify({ error: 'Name must be 2-12 uppercase alphanumeric characters' }), {
+    // 2. Handle validation
+    const handleOk =
+      cleanName.length >= 2 && cleanName.length <= 30 &&
+      /^[a-z0-9._]+$/.test(cleanName) &&
+      !cleanName.startsWith('.') && !cleanName.endsWith('.') &&
+      !cleanName.includes('..');
+    if (!handleOk) {
+      return new Response(JSON.stringify({ error: 'Instagram handle must be 2-30 characters of letters, numbers, . or _' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     // 3. Profanity check
+    const upperName = cleanName.toUpperCase();
     for (const bad of PROFANITY_LIST) {
-      if (cleanName.includes(bad)) {
-        return new Response(JSON.stringify({ error: 'Inappropriate player name' }), {
+      if (upperName.includes(bad)) {
+        return new Response(JSON.stringify({ error: 'Inappropriate handle' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
