@@ -12,14 +12,15 @@ assertConfigSanity();
 function bootstrap(): void {
   const canvas = document.querySelector<HTMLCanvasElement>('#game-canvas');
   const overlay = document.querySelector<HTMLElement>('#ui-overlay');
+  const container = document.querySelector<HTMLElement>('#game-container');
 
-  if (!canvas || !overlay) {
-    console.error('[KALACHAKRA] Canvas or UI Overlay DOM node missing.');
+  if (!canvas || !overlay || !container) {
+    console.error('[KALACHAKRA] Canvas, UI Overlay or container DOM node missing.');
     return;
   }
 
   try {
-    const game = new Game(canvas, overlay);
+    const game = new Game(canvas, overlay, container);
     // Attach to window for dev inspection if needed
     if (!import.meta.env.PROD) {
       (window as unknown as { __GAME__: Game }).__GAME__ = game;

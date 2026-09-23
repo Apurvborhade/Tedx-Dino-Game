@@ -45,7 +45,7 @@ export class Game {
   private deathTimer = 0;
   private runSeed = 0;
 
-  constructor(canvas: HTMLCanvasElement, uiOverlay: HTMLElement) {
+  constructor(canvas: HTMLCanvasElement, uiOverlay: HTMLElement, gameRoot: HTMLElement = uiOverlay) {
     this.viewport = new Viewport(canvas);
     this.audio = new Audio();
     this.api = new ApiClient();
@@ -68,7 +68,11 @@ export class Game {
       onTogglePause: () => this.togglePause(),
     });
 
-    this.input = new Input(uiOverlay);
+    // Listen on the container, not the overlay: #ui-overlay is pointer-events
+    // none, so once a run starts (HUD screen) a tap lands on the canvas and
+    // would never bubble to it. The container holds canvas, branding strip and
+    // overlay, so it sees every tap including the portrait letterbox.
+    this.input = new Input(gameRoot);
     this.input.onFirstGesture = () => {
       this.audio.init();
     };
