@@ -197,7 +197,7 @@ export class Game {
     if (diffResult.speedChanged && Math.floor(this.difficulty.speed) % 100 === 0) {
       this.audio.playSpeedUp();
     }
-    if (diffResult.hardModeStarted) {
+    if (diffResult.hardModeStarted || diffResult.surgeStarted) {
       this.audio.playSpeedUp();
     }
     const worldSpeed = this.difficulty.speed;

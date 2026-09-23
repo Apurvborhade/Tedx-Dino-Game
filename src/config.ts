@@ -41,14 +41,39 @@ export const SPEED = {
   ACCEL: 4.2,
   USE_EXPONENTIAL: true,
   EXP_K: 0.026,
+  /** The base curve is asymptotic, so a long run flattens out around 760px/s
+   *  and stops getting harder. Past SURGE_START_SCORE the wheel keeps
+   *  accelerating instead: +SURGE_ACCEL px/s every second, up to SURGE_MAX.
+   *
+   *  SURGE_MAX is set by the phone, not by taste: portrait shows 258px of
+   *  track ahead of the wheel, so 860px/s already leaves only 0.30s to see an
+   *  obstacle and jump it. Raising it further trades skill for luck. */
+  SURGE_START_SCORE: 1300,
+  SURGE_ACCEL: 3,
+  SURGE_MAX: 860,
 } as const;
 
 export const SPAWN = {
   MIN_GAP_PX: 190,
-  MAX_GAP_PX: 520,
+  MAX_GAP_PX: 560,
   GAP_SPEED_FACTOR: 0.55,
   CLUSTER_CHANCE: 0.18,
   CLUSTER_MIN_SCORE: 400,
+  /** A cluster is several obstacles close enough to clear in one jump. Three
+   *  only once the wheel is fast enough that one jump actually spans them. */
+  CLUSTER_MAX_MEMBERS: 3,
+  CLUSTER_THIRD_MIN_SCORE: 900,
+  /** Fraction of the jump arc a cluster may span. Well under 1 so the arc
+   *  still has room to rise before the first and fall after the last. */
+  CLUSTER_MAX_ARC_SPAN: 0.55,
+  /** Every so often the track tightens: a run of consecutive spawns at
+   *  BURST_GAP_SCALE of the usual gap. Never below what physics allows —
+   *  the floor in ObstacleSpawner still applies. */
+  BURST_MIN_SCORE: 500,
+  BURST_CHANCE: 0.14,
+  BURST_MIN_LEN: 3,
+  BURST_MAX_LEN: 5,
+  BURST_GAP_SCALE: 0.7,
 } as const;
 
 export const SCORE_CONFIG = {
@@ -77,8 +102,9 @@ export const HARD_MODE = {
   /** Seconds to blend the speed bonus in (no sudden jerk) */
   RAMP_SECONDS: 4,
   GAP_SPEED_FACTOR: 0.42,
-  CLUSTER_CHANCE: 0.28,
+  CLUSTER_CHANCE: 0.32,
   FLYER_CHANCE: 0.35,
+  BURST_CHANCE: 0.22,
 } as const;
 
 export const PLAYER_CONFIG = {
@@ -149,7 +175,7 @@ export function assertConfigSanity(): void {
   const totalRiseTime = holdTime + timeAfterHold;
   // Total airtime ≈ 2x rise time (symmetric enough for this check)
   const totalAirTime = totalRiseTime * 2;
-  const jumpArcLength = SPEED.MAX * totalAirTime;
+  const jumpArcLength = SPEED.SURGE_MAX * totalAirTime;
 
   // Widest obstacle
   let maxObstacleWidth = 0;
@@ -171,7 +197,7 @@ export function assertConfigSanity(): void {
   );
 
   console.log('[CONFIG] Sanity checks passed ✓');
-  console.log(`  Jump arc at max speed: ${jumpArcLength.toFixed(0)}px`);
+  console.log(`  Jump arc at surge speed: ${jumpArcLength.toFixed(0)}px`);
   console.log(`  Total airtime: ${(totalAirTime * 1000).toFixed(0)}ms`);
   console.log(`  Widest obstacle + margin: ${requiredClearance}px`);
 }
