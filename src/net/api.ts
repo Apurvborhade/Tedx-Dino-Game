@@ -165,7 +165,7 @@ export class ApiClient {
     return [
       { name: 'CHRONOS', score: 1840, rank: 1 },
       { name: 'ARYABHATTA', score: 1420, rank: 2 },
-      { name: 'KALACHAKRA', score: 1190, rank: 3 },
+      { name: 'KAALCHAKRA', score: 1190, rank: 3 },
       { name: 'TEDXDYP', score: 980, rank: 4 },
       { name: 'VORTEX', score: 750, rank: 5 },
       { name: 'WHEEL_X', score: 540, rank: 6 },

@@ -10,7 +10,7 @@
 const targetUrl = process.argv[2] || 'https://kalachakra.tedxdypdpu.com';
 
 console.log('═══════════════════════════════════════════════════════════');
-console.log('TEDxDYPDPU KALACHAKRA RUNNER — VENUE QR GENERATOR');
+console.log('TEDxDYPDPU KAALCHAKRA RUNNER — VENUE QR GENERATOR');
 console.log('═══════════════════════════════════════════════════════════');
 console.log(`Target URL: ${targetUrl}`);
 console.log('');

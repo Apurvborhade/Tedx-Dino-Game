@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- 001_init.sql — Supabase PostgreSQL Schema for Kalachakra Leaderboard
+-- 001_init.sql — Supabase PostgreSQL Schema for Kaalchakra Leaderboard
 -- ════════════════════════════════════════════════════════════════════════════
 
 -- 1. Scores Table

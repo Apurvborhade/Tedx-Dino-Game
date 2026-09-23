@@ -15,7 +15,7 @@ function bootstrap(): void {
   const container = document.querySelector<HTMLElement>('#game-container');
 
   if (!canvas || !overlay || !container) {
-    console.error('[KALACHAKRA] Canvas, UI Overlay or container DOM node missing.');
+    console.error('[KAALCHAKRA] Canvas, UI Overlay or container DOM node missing.');
     return;
   }
 
@@ -26,7 +26,7 @@ function bootstrap(): void {
       (window as unknown as { __GAME__: Game }).__GAME__ = game;
     }
   } catch (err) {
-    console.error('[KALACHAKRA] Boot error:', err);
+    console.error('[KAALCHAKRA] Boot error:', err);
     overlay.innerHTML = `
       <div class="screen-panel active">
         <div class="card center-content">

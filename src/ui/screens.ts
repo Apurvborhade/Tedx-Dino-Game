@@ -50,7 +50,7 @@ export class ScreenManager {
       <div id="screen-ready" class="screen-panel active">
         <div class="card center-content">
           <div class="tedx-wordmark"><span class="tedx-ted">TED<span class="tedx-x">x</span></span> DYPDPU</div>
-          <h1 class="hero-title">KALACHAKRA</h1>
+          <h1 class="hero-title">KAALCHAKRA</h1>
           <p class="hero-subtitle">THE WHEEL OF TIME</p>
           <div class="hero-wheel-container">
             <div class="hero-wheel-icon"></div>

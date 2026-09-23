@@ -1,4 +1,4 @@
-# KALACHAKRA — TEDxDYPDPU Endless Runner
+# KAALCHAKRA — TEDxDYPDPU Endless Runner
 
 A 1-bit monochrome pixel-art endless runner game built for the **TEDxDYPDPU** event. Attendees scan venue QR codes to immediately play on their mobile or desktop browser without registration or onboarding.
 
@@ -6,7 +6,7 @@ A 1-bit monochrome pixel-art endless runner game built for the **TEDxDYPDPU** ev
 
 ## 🌟 Game Highlights
 
-- **Thematic Narrative**: Play as the sacred rolling *Kalachakra* (Wheel of Time).
+- **Thematic Narrative**: Play as the sacred rolling *Kaalchakra* (Wheel of Time).
 - **Day / Night Environments**: A painted golden-hour temple skyline that crossfades into an eclipse night sky as the score-driven day/night cycle turns (700+).
 - **Micro-Engine**:
   - 120Hz fixed-timestep simulation accumulator.
@@ -44,7 +44,7 @@ The output will be built into the `dist/` directory, ready to deploy to Vercel, 
 ### 5. Deploy (Cloudflare Pages, free)
 ```bash
 npx wrangler login      # once, opens the browser
-npm run deploy          # build + upload dist/ → https://kalachakra.pages.dev
+npm run deploy          # build + upload dist/ → https://tedx-dino-game.tedxdypdpu-tech-work.workers.dev
 ```
 The site is fully static (~20 KB gzipped + ~105 KB of backdrops); the only
 per-player server work is the Supabase leaderboard. `public/_headers` sets
@@ -52,7 +52,7 @@ immutable caching for the fingerprinted `/assets` bundle.
 
 ### 6. Load test
 ```bash
-npm run loadtest -- --url https://kalachakra.pages.dev --users 100 --duration 90 [--submit]
+npm run loadtest -- --url https://tedx-dino-game.tedxdypdpu-tech-work.workers.dev --users 100 --duration 90 [--submit]
 ```
 Simulates N concurrent players (page load burst, runs, leaderboard polling
 and — with `--submit` — Edge Function score submissions under names
@@ -114,7 +114,7 @@ src/
 │   ├── Input.ts           # Unified keyboard, touch, and pointer events
 │   └── Rng.ts             # Mulberry32 seeded PRNG
 ├── entities/
-│   ├── Player.ts          # Kalachakra wheel physics, hitbox, dust
+│   ├── Player.ts          # Kaalchakra wheel physics, hitbox, dust
 │   ├── Ground.ts          # Scrolling line + era-dependent detail glyphs
 │   ├── Obstacle.ts        # Obstacle definitions & object pooling
 │   ├── ObstacleSpawner.ts # Spawn logic with clearability guarantees

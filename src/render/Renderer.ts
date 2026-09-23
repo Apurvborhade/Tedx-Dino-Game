@@ -113,7 +113,7 @@ export class Renderer {
       }
     }
 
-    // 6. Player (Rolling Kalachakra Wheel)
+    // 6. Player (Rolling Kaalchakra Wheel)
     this.drawPlayer(ctx, player, interpolationAlpha);
 
     // 7. HUD / Score overlay

@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════════════════
-// Player.ts — Kalachakra wheel: position, velocity, jump, rotation, hitbox
+// Player.ts — Kaalchakra wheel: position, velocity, jump, rotation, hitbox
 // ════════════════════════════════════════════════════════════════════════════
 
 import { PHYSICS, PLAYER_CONFIG, VIRTUAL } from '../config';
