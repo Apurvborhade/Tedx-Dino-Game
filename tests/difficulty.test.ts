@@ -60,9 +60,9 @@ describe('Late-game surge', () => {
     expect(d.speed).toBeLessThanOrEqual(SPEED.SURGE_MAX);
   });
 
-  it('never exceeds the cap the anti-cheat bound is derived from', () => {
+  it('never exceeds the surge cap before score 1500', () => {
     const d = new Difficulty();
-    for (let i = 0; i < 600 * 120; i++) d.update(1 / 120, 99999);
+    for (let i = 0; i < 600 * 120; i++) d.update(1 / 120, 1499);
     expect(d.speed).toBeCloseTo(SPEED.SURGE_MAX, 5);
   });
 
@@ -74,13 +74,32 @@ describe('Late-game surge', () => {
   });
 });
 
+describe('Endgame tier (score >= 1500)', () => {
+  it('keeps accelerating gradually past SURGE_MAX after score 1500 up to ENDGAME_MODE.SPEED_MAX', () => {
+    const d = new Difficulty();
+    // Reach score 1499 (surge cap)
+    for (let i = 0; i < 120 * 120; i++) d.update(1 / 120, 1499);
+    expect(d.speed).toBeCloseTo(SPEED.SURGE_MAX, 1);
+    expect(d.endgame).toBe(false);
+
+    // Cross into score 1500
+    d.update(1.0, 1500);
+    expect(d.endgame).toBe(true);
+    expect(d.speed).toBeGreaterThan(SPEED.SURGE_MAX);
+
+    // Run for extended time in endgame: caps at ENDGAME_MODE.SPEED_MAX
+    for (let i = 0; i < 600 * 120; i++) d.update(1 / 120, 2000);
+    expect(d.speed).toBeCloseTo(960, 5);
+  });
+});
+
 describe('Spawn spacing stays clearable', () => {
   it('never places two obstacles closer than the shortest jump can cross', () => {
     // Walk a whole run at every speed the game can reach, including bursts.
     for (let speed = SPEED.INITIAL; speed <= SPEED.SURGE_MAX; speed += 20) {
       const pool = new ObstaclePool(32);
       const spawner = new ObstacleSpawner(12345);
-      const score = 2000; // past every gate: hard mode, bursts, 3-clusters
+      const score = 1400; // before endgame
       for (let i = 0; i < 400; i++) spawner.update(pool, speed, score, 1 / 120);
 
       const arc = getJumpArcLength(speed);
@@ -89,6 +108,24 @@ describe('Spawn spacing stays clearable', () => {
       for (let i = 1; i < obs.length; i++) {
         const gap = obs[i]!.x - (obs[i - 1]!.x + obs[i - 1]!.width);
         // Either inside one jump (a cluster) or far enough to land and re-jump.
+        const clearable = gap <= arc * SPAWN.CLUSTER_MAX_ARC_SPAN || gap >= tapArc;
+        expect(clearable, `speed ${speed}: gap ${gap.toFixed(0)}px, tap arc ${tapArc.toFixed(0)}px`).toBe(true);
+      }
+    }
+  });
+
+  it('never places two obstacles closer than the shortest jump can cross in endgame with randomized gaps', () => {
+    for (let speed = SPEED.SURGE_MAX; speed <= 960; speed += 20) {
+      const pool = new ObstaclePool(32);
+      const spawner = new ObstacleSpawner(54321);
+      const score = 2000; // in endgame (>= 1500)
+      for (let i = 0; i < 400; i++) spawner.update(pool, speed, score, 1 / 120);
+
+      const arc = getJumpArcLength(speed, 1.07, 1.10);
+      const tapArc = getTapJumpArcLength(speed, 1.07);
+      const obs = [...pool.getActive()].sort((a, b) => a.x - b.x);
+      for (let i = 1; i < obs.length; i++) {
+        const gap = obs[i]!.x - (obs[i - 1]!.x + obs[i - 1]!.width);
         const clearable = gap <= arc * SPAWN.CLUSTER_MAX_ARC_SPAN || gap >= tapArc;
         expect(clearable, `speed ${speed}: gap ${gap.toFixed(0)}px, tap arc ${tapArc.toFixed(0)}px`).toBe(true);
       }

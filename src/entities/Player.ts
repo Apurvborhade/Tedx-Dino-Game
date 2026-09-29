@@ -2,7 +2,7 @@
 // Player.ts — Kaalchakra wheel: position, velocity, jump, rotation, hitbox
 // ════════════════════════════════════════════════════════════════════════════
 
-import { PHYSICS, PLAYER_CONFIG, VIRTUAL } from '../config';
+import { PHYSICS, PLAYER_CONFIG, VIRTUAL, ENDGAME_MODE } from '../config';
 
 export class Player {
   x: number = PLAYER_CONFIG.X;
@@ -11,6 +11,7 @@ export class Player {
   velocityY = 0;
   onGround = true;
   isDead = false;
+  isEndgame = false;
 
   // Jump hold tracking
   private holdTime = 0;
@@ -38,6 +39,10 @@ export class Player {
     }
   }
 
+  setEndgame(active: boolean): void {
+    this.isEndgame = active;
+  }
+
   reset(): void {
     this.x = PLAYER_CONFIG.X;
     this.y = VIRTUAL.GROUND_Y;
@@ -45,6 +50,7 @@ export class Player {
     this.velocityY = 0;
     this.onGround = true;
     this.isDead = false;
+    this.isEndgame = false;
     this.holdTime = 0;
     this.jumpHeld = false;
     this.timeSinceOnGround = 0;
@@ -60,7 +66,8 @@ export class Player {
     const canJump = this.onGround || this.timeSinceOnGround <= PHYSICS.COYOTE_TIME;
     if (!canJump || this.isDead) return false;
 
-    this.velocityY = PHYSICS.JUMP_VELOCITY;
+    const jumpScale = this.isEndgame ? ENDGAME_MODE.JUMP_IMPULSE_SCALE : 1.0;
+    this.velocityY = PHYSICS.JUMP_VELOCITY * jumpScale;
     this.onGround = false;
     this.jumpHeld = jumpHeld;
     this.holdTime = 0;
@@ -86,7 +93,11 @@ export class Player {
       this.holdTime += dt;
 
       // Variable jump height
-      if (this.jumpHeld && this.velocityY < 0 && this.holdTime < PHYSICS.MAX_HOLD_TIME) {
+      const maxHold = this.isEndgame
+        ? PHYSICS.MAX_HOLD_TIME * ENDGAME_MODE.MAX_HOLD_SCALE
+        : PHYSICS.MAX_HOLD_TIME;
+
+      if (this.jumpHeld && this.velocityY < 0 && this.holdTime < maxHold) {
         this.velocityY += PHYSICS.GRAVITY * PHYSICS.HOLD_GRAVITY_SCALE * dt;
       } else {
         this.velocityY += PHYSICS.GRAVITY * dt;

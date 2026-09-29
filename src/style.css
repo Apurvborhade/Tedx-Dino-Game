@@ -27,7 +27,6 @@ html, body {
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
-  transition: background-color 0.2s linear, color 0.2s linear;
 }
 
 #game-container {
@@ -40,6 +39,7 @@ html, body {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  background-color: var(--paper);
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 

@@ -2,7 +2,7 @@
 // ObstacleSpawner.ts — Spawn timing, type selection, spacing guarantees
 // ════════════════════════════════════════════════════════════════════════════
 
-import { SPAWN, OBSTACLE_TYPES, VIRTUAL, PHYSICS, FLYERS, HARD_MODE, type ObstacleTypeName } from '../config';
+import { SPAWN, OBSTACLE_TYPES, VIRTUAL, PHYSICS, FLYERS, HARD_MODE, ENDGAME_MODE, type ObstacleTypeName } from '../config';
 import { Rng } from '../core/Rng';
 import { ObstaclePool } from './Obstacle';
 
@@ -59,13 +59,18 @@ export class ObstacleSpawner {
 
   private spawnObstacle(pool: ObstaclePool, worldSpeed: number, score: number): void {
     const hard = score >= HARD_MODE.START_SCORE;
-    const burst = this.takeBurstSlot(score, hard);
+    const endgame = score >= ENDGAME_MODE.START_SCORE;
+    const burst = this.takeBurstSlot(score, hard, endgame);
 
     // ── Flyer check ──────────────────────────────────────────────────────────
-    const flyerChance = hard ? HARD_MODE.FLYER_CHANCE : FLYERS.FLYER_CHANCE;
+    const flyerChance = endgame
+      ? ENDGAME_MODE.FLYER_CHANCE
+      : hard
+        ? HARD_MODE.FLYER_CHANCE
+        : FLYERS.FLYER_CHANCE;
     if (score >= FLYERS.MIN_SCORE && this.rng.chance(flyerChance)) {
       this.spawnFlyer(pool);
-      const gap = this.calculateGap(worldSpeed, hard, burst);
+      const gap = this.calculateGap(worldSpeed, hard, burst, endgame);
       this.nextSpawnX += OBSTACLE_TYPES.TIME_BIRD.width + gap;
       return;
     }
@@ -96,13 +101,19 @@ export class ObstacleSpawner {
     // has to sit inside a fraction of the jump arc at the current speed.
     let isCluster = false;
     let obstacleEndX = this.nextSpawnX + OBSTACLE_TYPES[type].width;
-    const clusterChance = hard ? HARD_MODE.CLUSTER_CHANCE : SPAWN.CLUSTER_CHANCE;
+    const clusterChance = endgame
+      ? ENDGAME_MODE.CLUSTER_CHANCE
+      : hard
+        ? HARD_MODE.CLUSTER_CHANCE
+        : SPAWN.CLUSTER_CHANCE;
     if (score >= SPAWN.CLUSTER_MIN_SCORE &&
         !this.lastWasCluster &&
         this.consecutiveClusterCount < 2 &&
         this.rng.chance(clusterChance)) {
       const maxMembers = score >= SPAWN.CLUSTER_THIRD_MIN_SCORE ? SPAWN.CLUSTER_MAX_MEMBERS : 2;
-      const maxSpan = getJumpArcLength(worldSpeed) * SPAWN.CLUSTER_MAX_ARC_SPAN;
+      const jumpScale = endgame ? ENDGAME_MODE.JUMP_IMPULSE_SCALE : 1.0;
+      const holdScale = endgame ? ENDGAME_MODE.MAX_HOLD_SCALE : 1.0;
+      const maxSpan = getJumpArcLength(worldSpeed, jumpScale, holdScale) * SPAWN.CLUSTER_MAX_ARC_SPAN;
       for (let member = 1; member < maxMembers; member++) {
         const clusterGap = this.rng.range(20, 34);
         const clusterType = this.rng.pick(eligibleTypes);
@@ -122,7 +133,7 @@ export class ObstacleSpawner {
     this.lastWasCluster = isCluster;
 
     // Calculate next gap
-    const gap = this.calculateGap(worldSpeed, hard, burst);
+    const gap = this.calculateGap(worldSpeed, hard, burst, endgame);
     this.nextSpawnX = obstacleEndX + gap;
   }
 
@@ -137,12 +148,16 @@ export class ObstacleSpawner {
   }
 
   /** True when this spawn belongs to a tightened stretch of track. */
-  private takeBurstSlot(score: number, hard: boolean): boolean {
+  private takeBurstSlot(score: number, hard: boolean, endgame = false): boolean {
     if (this.burstRemaining > 0) {
       this.burstRemaining--;
       return true;
     }
-    const chance = hard ? HARD_MODE.BURST_CHANCE : SPAWN.BURST_CHANCE;
+    const chance = endgame
+      ? ENDGAME_MODE.BURST_CHANCE
+      : hard
+        ? HARD_MODE.BURST_CHANCE
+        : SPAWN.BURST_CHANCE;
     if (score >= SPAWN.BURST_MIN_SCORE && this.rng.chance(chance)) {
       this.burstRemaining = this.rng.int(SPAWN.BURST_MIN_LEN, SPAWN.BURST_MAX_LEN) - 1;
       return true;
@@ -150,18 +165,23 @@ export class ObstacleSpawner {
     return false;
   }
 
-  private calculateGap(worldSpeed: number, hard = false, burst = false): number {
+  private calculateGap(worldSpeed: number, hard = false, burst = false, endgame = false): number {
     // Base gap scaled by speed (tighter after the first night)
     const factor = hard ? HARD_MODE.GAP_SPEED_FACTOR : SPAWN.GAP_SPEED_FACTOR;
-    let baseGap = SPAWN.MIN_GAP_PX + worldSpeed * factor * this.rng.range(0.8, 1.6);
+    const randomMultiplier = endgame
+      ? this.rng.range(ENDGAME_MODE.MIN_GAP_SCALE, ENDGAME_MODE.MAX_GAP_SCALE)
+      : this.rng.range(0.8, 1.6);
+    let baseGap = SPAWN.MIN_GAP_PX + worldSpeed * factor * randomMultiplier;
     if (burst) baseGap *= SPAWN.BURST_GAP_SCALE;
 
-    // Compute minimum clearable gap from physics
-    const minClearableGap = this.getMinClearableGap(worldSpeed);
+    // Compute minimum clearable gap from physics with endgame jump scaling
+    const minClearableGap = this.getMinClearableGap(worldSpeed, endgame);
 
-    // Clamp. The floor wins over MAX_GAP_PX: an unclearable gap is a bug,
+    const maxGap = endgame ? ENDGAME_MODE.MAX_GAP_PX : SPAWN.MAX_GAP_PX;
+
+    // Clamp. The floor wins over maxGap: an unclearable gap is a bug,
     // an unusually wide one is just a breather.
-    const gap = Math.max(minClearableGap, Math.min(baseGap, SPAWN.MAX_GAP_PX));
+    const gap = Math.max(minClearableGap, Math.min(baseGap, maxGap));
     return gap;
   }
 
@@ -169,8 +189,9 @@ export class ObstacleSpawner {
    *  The quickest way over an obstacle is a tapped jump with no hold, so the
    *  next one cannot be closer than that arc — otherwise the wheel is still
    *  airborne when it arrives and no input could have saved it. */
-  private getMinClearableGap(worldSpeed: number): number {
-    const tapArc = getTapJumpArcLength(worldSpeed);
+  private getMinClearableGap(worldSpeed: number, endgame = false): number {
+    const jumpScale = endgame ? ENDGAME_MODE.JUMP_IMPULSE_SCALE : 1.0;
+    const tapArc = getTapJumpArcLength(worldSpeed, jumpScale);
     const reactionBuffer = 0.12 * worldSpeed; // land, see the next one, jump
     return Math.max(tapArc + reactionBuffer + 16, SPAWN.MIN_GAP_PX);
   }
@@ -178,15 +199,16 @@ export class ObstacleSpawner {
 
 /** Horizontal distance covered by the shortest possible jump — a tap with no
  *  hold. This is the floor on obstacle spacing. */
-export function getTapJumpArcLength(worldSpeed: number): number {
-  const airTime = (2 * -PHYSICS.JUMP_VELOCITY) / PHYSICS.GRAVITY;
+export function getTapJumpArcLength(worldSpeed: number, jumpScale = 1.0): number {
+  const airTime = (2 * -PHYSICS.JUMP_VELOCITY * jumpScale) / PHYSICS.GRAVITY;
   return worldSpeed * airTime;
 }
 
 /** Calculate jump arc length for a given speed (useful for testing) */
-export function getJumpArcLength(worldSpeed: number): number {
-  const v0 = -PHYSICS.JUMP_VELOCITY;
-  const holdTime = Math.min(PHYSICS.MAX_HOLD_TIME, v0 / (PHYSICS.GRAVITY * PHYSICS.HOLD_GRAVITY_SCALE));
+export function getJumpArcLength(worldSpeed: number, jumpScale = 1.0, holdScale = 1.0): number {
+  const v0 = -PHYSICS.JUMP_VELOCITY * jumpScale;
+  const maxHoldTime = PHYSICS.MAX_HOLD_TIME * holdScale;
+  const holdTime = Math.min(maxHoldTime, v0 / (PHYSICS.GRAVITY * PHYSICS.HOLD_GRAVITY_SCALE));
   const vAfterHold = v0 - PHYSICS.GRAVITY * PHYSICS.HOLD_GRAVITY_SCALE * holdTime;
   const timeAfterHold = vAfterHold / PHYSICS.GRAVITY;
   const totalRiseTime = holdTime + timeAfterHold;

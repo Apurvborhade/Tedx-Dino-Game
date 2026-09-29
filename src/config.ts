@@ -107,6 +107,31 @@ export const HARD_MODE = {
   BURST_CHANCE: 0.22,
 } as const;
 
+/** After score 1500 the run enters the endgame tier:
+ *  - Speed continues to increase gradually up to SPEED_MAX
+ *  - Spacing between obstacles is randomized across a wider range
+ *  - Jump impulse and air hold scale up slightly, increasing the wheel's jump arc/length
+ */
+export const ENDGAME_MODE = {
+  START_SCORE: 1500,
+  /** Gradual speed acceleration past SURGE_MAX (px/s per second) */
+  SPEED_ACCEL: 0.8,
+  /** Maximum endgame speed — tuned to remain playable with lookahead & boosted jump */
+  SPEED_MAX: 960,
+  /** Multiplier on JUMP_VELOCITY (negative upward speed) */
+  JUMP_IMPULSE_SCALE: 1.07,
+  /** Multiplier on MAX_HOLD_TIME for slightly more hang time */
+  MAX_HOLD_SCALE: 1.10,
+  /** Wider random spread for obstacle spacing */
+  MIN_GAP_SCALE: 0.55,
+  MAX_GAP_SCALE: 2.2,
+  MAX_GAP_PX: 720,
+  /** Extra flyer and cluster chances in endgame */
+  FLYER_CHANCE: 0.40,
+  CLUSTER_CHANCE: 0.36,
+  BURST_CHANCE: 0.28,
+} as const;
+
 export const PLAYER_CONFIG = {
   SPRITE_SIZE: 32,
   X: 72,

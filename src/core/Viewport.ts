@@ -129,6 +129,7 @@ export class Viewport {
   /** Apply paper colour to page background and theme-color meta (called by Game on palette change) */
   applyPageBackground(paper: string): void {
     document.documentElement.style.setProperty('--paper', paper);
+    document.documentElement.style.backgroundColor = paper;
     document.body.style.backgroundColor = paper;
     if (this.themeColorMeta) {
       this.themeColorMeta.setAttribute('content', paper);

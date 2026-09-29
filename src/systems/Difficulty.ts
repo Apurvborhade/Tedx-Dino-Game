@@ -2,7 +2,7 @@
 // Difficulty.ts — Score → speed, spawn interval, gap sizing
 // ════════════════════════════════════════════════════════════════════════════
 
-import { SPEED, HARD_MODE } from '../config';
+import { SPEED, HARD_MODE, ENDGAME_MODE } from '../config';
 
 export class Difficulty {
   speed: number = SPEED.INITIAL;
@@ -10,23 +10,34 @@ export class Difficulty {
   hard = false;
   /** True once the run has passed SPEED.SURGE_START_SCORE */
   surge = false;
+  /** True once the run has passed ENDGAME_MODE.START_SCORE (1500) */
+  endgame = false;
   private elapsed = 0;
   /** 0-1 blend of the hard-mode speed bonus */
   private hardBlend = 0;
   /** Seconds spent in the surge tier — the base curve has flattened by then,
    *  so this is what keeps the run getting faster. */
   private surgeTime = 0;
+  /** Seconds spent in the endgame tier (score >= 1500) */
+  private endgameTime = 0;
 
   reset(): void {
     this.speed = SPEED.INITIAL;
     this.hard = false;
     this.surge = false;
+    this.endgame = false;
     this.elapsed = 0;
     this.hardBlend = 0;
     this.surgeTime = 0;
+    this.endgameTime = 0;
   }
 
-  update(dt: number, score = 0): { speedChanged: boolean; hardModeStarted: boolean; surgeStarted: boolean } {
+  update(dt: number, score = 0): {
+    speedChanged: boolean;
+    hardModeStarted: boolean;
+    surgeStarted: boolean;
+    endgameStarted: boolean;
+  } {
     const prevSpeed = this.speed;
     this.elapsed += dt;
 
@@ -48,14 +59,37 @@ export class Difficulty {
       this.surgeTime += dt;
     }
 
-    this.speed = Math.min(
+    let endgameStarted = false;
+    if (score >= ENDGAME_MODE.START_SCORE) {
+      if (!this.endgame) {
+        this.endgame = true;
+        endgameStarted = true;
+      }
+      this.endgameTime += dt;
+    }
+
+    const surgeSpeed = Math.min(
       Difficulty.speedAtTime(this.elapsed)
         + HARD_MODE.SPEED_BONUS * this.hardBlend
         + SPEED.SURGE_ACCEL * this.surgeTime,
       SPEED.SURGE_MAX,
     );
 
-    return { speedChanged: Math.abs(this.speed - prevSpeed) > 0.5, hardModeStarted, surgeStarted };
+    if (this.endgame) {
+      this.speed = Math.min(
+        surgeSpeed + ENDGAME_MODE.SPEED_ACCEL * this.endgameTime,
+        ENDGAME_MODE.SPEED_MAX,
+      );
+    } else {
+      this.speed = surgeSpeed;
+    }
+
+    return {
+      speedChanged: Math.abs(this.speed - prevSpeed) > 0.5,
+      hardModeStarted,
+      surgeStarted,
+      endgameStarted,
+    };
   }
 
   /** Get current speed for a given elapsed time (for validation) */
@@ -75,11 +109,14 @@ export class Difficulty {
 
     while (t < totalTime) {
       const step = Math.min(dt, totalTime - t);
-      // Assume the hard-mode bonus and the surge from the first second: a
-      // conservative upper bound, since both really need score on the board.
-      const speed = Math.min(
+      // Assume the hard-mode bonus, surge, and endgame acceleration:
+      const surgeSpeed = Math.min(
         Difficulty.speedAtTime(t) + HARD_MODE.SPEED_BONUS + SPEED.SURGE_ACCEL * t,
         SPEED.SURGE_MAX,
+      );
+      const speed = Math.min(
+        surgeSpeed + ENDGAME_MODE.SPEED_ACCEL * t,
+        ENDGAME_MODE.SPEED_MAX,
       );
       distance += speed * step;
       t += step;

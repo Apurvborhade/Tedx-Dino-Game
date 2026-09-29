@@ -18,6 +18,7 @@ import { Renderer } from '../render/Renderer';
 import { ScreenManager } from '../ui/screens';
 import { ApiClient } from '../net/api';
 import { RunToken } from '../net/runToken';
+import { ENDGAME_MODE } from '../config';
 
 export type GameState = 'BOOT' | 'READY' | 'PLAYING' | 'DYING' | 'GAME_OVER' | 'PAUSED';
 
@@ -87,6 +88,7 @@ export class Game {
 
   private boot(): void {
     this.state = 'READY';
+    this.applyCssTheme();
     this.screens.showReady();
     this.screens.updateAudioUi(this.audio.muted);
     this.loop.start();
@@ -107,6 +109,7 @@ export class Game {
     this.score.reset();
     this.difficulty.reset();
     this.theme.reset();
+    this.applyCssTheme();
     this.ground.reset();
     this.backdrop.reset();
 
@@ -182,6 +185,9 @@ export class Game {
       return;
     }
 
+    // Set endgame state on player based on current score
+    this.player.setEndgame(this.score.value >= ENDGAME_MODE.START_SCORE);
+
     // 1. Jump input processing with coyote time & jump buffering
     if (this.input.jumpPressed || this.input.hasBufferedJump()) {
       const jumped = this.player.tryJump(this.input.jumpHeld);
@@ -197,7 +203,7 @@ export class Game {
     if (diffResult.speedChanged && Math.floor(this.difficulty.speed) % 100 === 0) {
       this.audio.playSpeedUp();
     }
-    if (diffResult.hardModeStarted || diffResult.surgeStarted) {
+    if (diffResult.hardModeStarted || diffResult.surgeStarted || diffResult.endgameStarted) {
       this.audio.playSpeedUp();
     }
     const worldSpeed = this.difficulty.speed;

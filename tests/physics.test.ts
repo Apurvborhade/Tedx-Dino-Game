@@ -58,4 +58,29 @@ describe('Player Physics', () => {
     expect(box.w).toBe(PLAYER_CONFIG.SPRITE_SIZE - PLAYER_CONFIG.HITBOX_INSET * 2);
     expect(box.h).toBe(PLAYER_CONFIG.SPRITE_SIZE - PLAYER_CONFIG.HITBOX_INSET * 2);
   });
+
+  it('increases jump impulse and apex height in endgame', () => {
+    const normalPlayer = new Player();
+    normalPlayer.tryJump(true);
+
+    const endgamePlayer = new Player();
+    endgamePlayer.setEndgame(true);
+    endgamePlayer.tryJump(true);
+
+    // Initial upward velocity is stronger in endgame
+    expect(Math.abs(endgamePlayer.velocityY)).toBeGreaterThan(Math.abs(normalPlayer.velocityY));
+
+    // Follow jump arcs
+    let normalApex = 0;
+    let endgameApex = 0;
+    const dt = 1 / 120;
+    for (let f = 0; f < 100; f++) {
+      normalPlayer.update(dt, true, 300);
+      endgamePlayer.update(dt, true, 300);
+      normalApex = Math.max(normalApex, VIRTUAL.GROUND_Y - normalPlayer.y);
+      endgameApex = Math.max(endgameApex, VIRTUAL.GROUND_Y - endgamePlayer.y);
+    }
+
+    expect(endgameApex).toBeGreaterThan(normalApex);
+  });
 });
