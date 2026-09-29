@@ -19,6 +19,8 @@ export class ObstacleSpawner {
   private consecutiveClusterCount = 0;
   /** Spawns left in the current tightened stretch (see SPAWN.BURST_*) */
   private burstRemaining = 0;
+  /** Consecutive tight gaps in endgame to prevent unplayable spam */
+  private consecutiveTightGaps = 0;
 
   constructor(seed: number) {
     this.rng = new Rng(seed);
@@ -32,6 +34,7 @@ export class ObstacleSpawner {
     this.lastWasCluster = false;
     this.consecutiveClusterCount = 0;
     this.burstRemaining = 0;
+    this.consecutiveTightGaps = 0;
   }
 
   update(pool: ObstaclePool, worldSpeed: number, score: number, dt: number): void {
@@ -166,23 +169,63 @@ export class ObstacleSpawner {
   }
 
   private calculateGap(worldSpeed: number, hard = false, burst = false, endgame = false): number {
+    const minClearableGap = this.getMinClearableGap(worldSpeed, endgame);
+    const maxGap = endgame ? ENDGAME_MODE.MAX_GAP_PX : SPAWN.MAX_GAP_PX;
+
+    if (endgame) {
+      return this.calculateEndgameGap(minClearableGap, maxGap, burst);
+    }
+
     // Base gap scaled by speed (tighter after the first night)
     const factor = hard ? HARD_MODE.GAP_SPEED_FACTOR : SPAWN.GAP_SPEED_FACTOR;
-    const randomMultiplier = endgame
-      ? this.rng.range(ENDGAME_MODE.MIN_GAP_SCALE, ENDGAME_MODE.MAX_GAP_SCALE)
-      : this.rng.range(0.8, 1.6);
+    const randomMultiplier = this.rng.range(0.8, 1.6);
     let baseGap = SPAWN.MIN_GAP_PX + worldSpeed * factor * randomMultiplier;
     if (burst) baseGap *= SPAWN.BURST_GAP_SCALE;
-
-    // Compute minimum clearable gap from physics with endgame jump scaling
-    const minClearableGap = this.getMinClearableGap(worldSpeed, endgame);
-
-    const maxGap = endgame ? ENDGAME_MODE.MAX_GAP_PX : SPAWN.MAX_GAP_PX;
 
     // Clamp. The floor wins over maxGap: an unclearable gap is a bug,
     // an unusually wide one is just a breather.
     const gap = Math.max(minClearableGap, Math.min(baseGap, maxGap));
     return gap;
+  }
+
+  /** Dynamic spacing in endgame (>1500 score):
+   *  - Sometimes a tight follow-up ("little less") requiring rapid reflex / jump buffering
+   *  - Sometimes a wide breather ("little more") breaking monotonous rhythmic timing
+   *  - Strictly capped at 2 consecutive tight gaps to keep the game fair and playable
+   */
+  private calculateEndgameGap(
+    minClearableGap: number,
+    maxGap: number,
+    burst = false,
+  ): number {
+    if (burst) {
+      this.consecutiveTightGaps++;
+      const burstGap = minClearableGap + this.rng.range(8, 48);
+      return Math.min(maxGap, burstGap);
+    }
+
+    const forceBreather = this.consecutiveTightGaps >= 2;
+    const roll = forceBreather ? this.rng.range(0.38, 1.0) : this.rng.next();
+
+    let gap: number;
+    if (roll < 0.38) {
+      // TIGHT GAP ("little less distance"): quick reflex follow-up
+      this.consecutiveTightGaps++;
+      gap = minClearableGap + this.rng.range(8, 54);
+    } else if (roll < 0.72) {
+      // WIDE GAP ("little more distance"): open stride, unpredictable rhythm
+      this.consecutiveTightGaps = 0;
+      const wideMin = Math.max(minClearableGap + 90, maxGap - 120);
+      gap = this.rng.range(wideMin, maxGap);
+    } else {
+      // MODERATE / VARIED GAP: intermediate distance
+      this.consecutiveTightGaps = 0;
+      const midMin = minClearableGap + 60;
+      const midMax = Math.max(midMin + 30, maxGap - 130);
+      gap = this.rng.range(midMin, midMax);
+    }
+
+    return Math.max(minClearableGap, Math.min(gap, maxGap));
   }
 
   /** Compute the minimum gap that is physically clearable at the given speed.
@@ -192,8 +235,11 @@ export class ObstacleSpawner {
   private getMinClearableGap(worldSpeed: number, endgame = false): number {
     const jumpScale = endgame ? ENDGAME_MODE.JUMP_IMPULSE_SCALE : 1.0;
     const tapArc = getTapJumpArcLength(worldSpeed, jumpScale);
-    const reactionBuffer = 0.12 * worldSpeed; // land, see the next one, jump
-    return Math.max(tapArc + reactionBuffer + 16, SPAWN.MIN_GAP_PX);
+    // In endgame, reaction buffer is tightened to allow rapid reflex jumps
+    // while remaining fully clearable via jump buffering and tap timing.
+    const reactionBuffer = (endgame ? 0.05 : 0.12) * worldSpeed;
+    const margin = endgame ? 10 : 16;
+    return Math.max(tapArc + reactionBuffer + margin, SPAWN.MIN_GAP_PX);
   }
 }
 

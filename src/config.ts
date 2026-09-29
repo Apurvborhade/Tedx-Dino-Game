@@ -114,18 +114,16 @@ export const HARD_MODE = {
  */
 export const ENDGAME_MODE = {
   START_SCORE: 1500,
-  /** Gradual speed acceleration past SURGE_MAX (px/s per second) */
-  SPEED_ACCEL: 0.8,
+  /** Gradual speed acceleration past SURGE_MAX (px/s per second) — steady increase without sudden jumps */
+  SPEED_ACCEL: 1.2,
   /** Maximum endgame speed — tuned to remain playable with lookahead & boosted jump */
-  SPEED_MAX: 960,
+  SPEED_MAX: 980,
   /** Multiplier on JUMP_VELOCITY (negative upward speed) */
-  JUMP_IMPULSE_SCALE: 1.07,
+  JUMP_IMPULSE_SCALE: 1.08,
   /** Multiplier on MAX_HOLD_TIME for slightly more hang time */
-  MAX_HOLD_SCALE: 1.10,
-  /** Wider random spread for obstacle spacing */
-  MIN_GAP_SCALE: 0.55,
-  MAX_GAP_SCALE: 2.2,
-  MAX_GAP_PX: 720,
+  MAX_HOLD_SCALE: 1.12,
+  /** Max spacing cap in endgame allowing spacious breathers */
+  MAX_GAP_PX: 840,
   /** Extra flyer and cluster chances in endgame */
   FLYER_CHANCE: 0.40,
   CLUSTER_CHANCE: 0.36,

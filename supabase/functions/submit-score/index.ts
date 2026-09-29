@@ -69,11 +69,11 @@ serve(async (req) => {
 
     // 5. Plausibility check against run duration
     const durationMs = token?.durationMs ?? 1000;
-    // Theoretical top speed is ENDGAME_MODE.SPEED_MAX = 960 px/s (680 base + 80 hard
+    // Theoretical top speed is ENDGAME_MODE.SPEED_MAX = 980 px/s (680 base + 80 hard
     // mode + surge + endgame acceleration). 1 px = 0.025 score units →
-    // 24.0 score/s at the cap. Allow 26/s + slack.
+    // 24.5 score/s at the cap. Allow 27/s + slack.
     // NOTE: keep in step with ENDGAME_MODE.SPEED_MAX in src/config.ts.
-    const maxTheoreticalScore = Math.ceil((durationMs / 1000) * 26) + 50;
+    const maxTheoreticalScore = Math.ceil((durationMs / 1000) * 27) + 50;
     if (score > maxTheoreticalScore && score > 200) {
       return new Response(JSON.stringify({ error: 'Score violates physical trajectory bounds' }), {
         status: 400,
