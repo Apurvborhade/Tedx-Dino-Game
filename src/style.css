@@ -178,25 +178,19 @@ html, body {
 /* ── TEDx wordmark ───────────────────────────────────────────────────────── */
 
 .tedx-wordmark {
-  font-family: var(--font-brand);
-  font-weight: 900;
-  font-size: 22px;
-  letter-spacing: -0.5px;
-  line-height: 1;
   color: var(--ink);
+  line-height: 0;
 }
 
-.tedx-wordmark-small {
-  font-size: 15px;
+.tedx-logo {
+  display: block;
+  height: 26px;
+  width: auto;
+  aspect-ratio: 667 / 108;
 }
 
-.tedx-ted {
-  color: #eb0028;
-}
-
-.tedx-x {
-  font-weight: 700;
-  font-size: 0.85em;
+.tedx-wordmark-small .tedx-logo {
+  height: 18px;
 }
 
 /* ── Typography ─────────────────────────────────────────────────────────── */
@@ -614,8 +608,8 @@ input[type="text"]:focus {
     padding: 12px 20px;
     gap: 8px;
   }
-  .tedx-wordmark {
-    font-size: 18px;
+  .tedx-wordmark .tedx-logo {
+    height: 20px;
   }
   .hero-wheel-container {
     display: none;

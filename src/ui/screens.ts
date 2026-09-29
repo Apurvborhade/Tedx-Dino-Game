@@ -6,6 +6,7 @@ import type { ApiClient } from '../net/api';
 import type { RunTokenPayload } from '../net/runToken';
 import { SubmitForm } from './SubmitForm';
 import { LeaderboardView } from './Leaderboard';
+import { tedxLogo } from './tedxLogo';
 
 export type GameScreen = 'READY' | 'HUD' | 'GAME_OVER' | 'SUBMIT' | 'LEADERBOARD' | 'PAUSED' | 'HIDDEN';
 
@@ -49,7 +50,7 @@ export class ScreenManager {
     this.overlayRoot.innerHTML = `
       <div id="screen-ready" class="screen-panel active">
         <div class="card center-content">
-          <div class="tedx-wordmark"><span class="tedx-ted">TED<span class="tedx-x">x</span></span> DYPDPU</div>
+          <div class="tedx-wordmark">${tedxLogo()}</div>
           <h1 class="hero-title">KAALCHAKRA</h1>
           <p class="hero-subtitle">THE WHEEL OF TIME</p>
           <div class="hero-wheel-container">
@@ -70,7 +71,7 @@ export class ScreenManager {
 
       <div id="screen-gameover" class="screen-panel hidden">
         <div class="card center-content">
-          <div class="tedx-wordmark tedx-wordmark-small"><span class="tedx-ted">TED<span class="tedx-x">x</span></span> DYPDPU</div>
+          <div class="tedx-wordmark tedx-wordmark-small">${tedxLogo()}</div>
           <h2 class="crash-title">TIME COLLAPSED</h2>
           <div class="score-summary">
             <div class="score-box">
