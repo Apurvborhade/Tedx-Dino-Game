@@ -4,20 +4,18 @@
 
 import type { ApiClient } from '../net/api';
 import type { RunTokenPayload } from '../net/runToken';
-import { SubmitForm } from './SubmitForm';
+import { HandleForm, getSavedHandle } from './HandleForm';
 import { LeaderboardView } from './Leaderboard';
 import { tedxLogo } from './tedxLogo';
 
-export type GameScreen = 'READY' | 'HUD' | 'GAME_OVER' | 'SUBMIT' | 'LEADERBOARD' | 'PAUSED' | 'HIDDEN';
+export type GameScreen = 'READY' | 'HUD' | 'GAME_OVER' | 'HANDLE' | 'LEADERBOARD' | 'PAUSED' | 'HIDDEN';
 
 /** Where BACK on the leaderboard should land. The leaderboard is a modal over
  *  whatever opened it, and the run's state machine is still sitting in that
  *  state — dropping a finished run on the ready screen leaves both halves
  *  disagreeing and nothing accepting input. */
 export function returnScreenFor(openedFrom: GameScreen): 'READY' | 'GAME_OVER' {
-  // SUBMIT chains into the leaderboard on success; its card belongs to a
-  // finished run, so it goes back to game over too.
-  return openedFrom === 'GAME_OVER' || openedFrom === 'SUBMIT' ? 'GAME_OVER' : 'READY';
+  return openedFrom === 'GAME_OVER' ? 'GAME_OVER' : 'READY';
 }
 
 export interface ScreenCallbacks {
@@ -31,13 +29,14 @@ export class ScreenManager {
   private overlayRoot: HTMLElement;
   private readyScreen: HTMLElement;
   private gameOverScreen: HTMLElement;
-  private submitContainer: HTMLElement;
+  private handleContainer: HTMLElement;
   private leaderboardContainer: HTMLElement;
   private pausedScreen: HTMLElement;
   private hudControls: HTMLElement;
 
   private muteBtnHud: HTMLButtonElement;
-  private submitForm: SubmitForm;
+  private handleForm: HandleForm;
+  private api: ApiClient;
   private leaderboardView: LeaderboardView;
 
   private currentScreen: GameScreen = 'READY';
@@ -45,6 +44,7 @@ export class ScreenManager {
 
   constructor(overlayRoot: HTMLElement, api: ApiClient, callbacks: ScreenCallbacks) {
     this.overlayRoot = overlayRoot;
+    this.api = api;
     this.callbacks = callbacks;
 
     this.overlayRoot.innerHTML = `
@@ -58,6 +58,13 @@ export class ScreenManager {
           </div>
           <div class="cta-prompt pulse">TAP SCREEN OR PRESS SPACE TO START</div>
           <div class="hero-subtitle">TAP · SPACE = JUMP &nbsp;&nbsp; HOLD = HIGHER</div>
+          <div class="player-line hidden" id="ready-player-line">
+            <div>
+              <span class="player-label">PLAYING AS</span>
+              <span class="player-handle" id="ready-player-handle"></span>
+            </div>
+            <button type="button" class="link-btn" id="ready-change-btn">CHANGE</button>
+          </div>
           <div class="button-row">
             <button type="button" class="btn btn-secondary" id="ready-lb-btn">LEADERBOARD</button>
             <button type="button" class="btn btn-icon" id="ready-sound-btn" title="Toggle Sound">🔊</button>
@@ -84,17 +91,15 @@ export class ScreenManager {
             </div>
           </div>
           <div id="new-best-badge" class="new-best hidden">★ NEW RECORD ★</div>
+          <div class="form-status" id="go-save-status"></div>
           <div class="button-column">
             <button type="button" class="btn btn-primary btn-large" id="go-retry-btn">RUN AGAIN (SPACE)</button>
-            <div class="button-row">
-              <button type="button" class="btn btn-secondary" id="go-submit-btn">SUBMIT SCORE</button>
-              <button type="button" class="btn btn-secondary" id="go-lb-btn">LEADERBOARD</button>
-            </div>
+            <button type="button" class="btn btn-secondary" id="go-lb-btn">LEADERBOARD</button>
           </div>
         </div>
       </div>
 
-      <div id="screen-submit" class="screen-panel hidden"></div>
+      <div id="screen-handle" class="screen-panel hidden"></div>
       <div id="screen-leaderboard" class="screen-panel hidden"></div>
 
       <div id="screen-paused" class="screen-panel hidden">
@@ -107,18 +112,19 @@ export class ScreenManager {
 
     this.readyScreen = this.overlayRoot.querySelector('#screen-ready')!;
     this.gameOverScreen = this.overlayRoot.querySelector('#screen-gameover')!;
-    this.submitContainer = this.overlayRoot.querySelector('#screen-submit')!;
+    this.handleContainer = this.overlayRoot.querySelector('#screen-handle')!;
     this.leaderboardContainer = this.overlayRoot.querySelector('#screen-leaderboard')!;
     this.pausedScreen = this.overlayRoot.querySelector('#screen-paused')!;
     this.hudControls = this.overlayRoot.querySelector('#screen-hud')!;
     this.muteBtnHud = this.overlayRoot.querySelector('#hud-sound-btn')!;
 
-    this.submitForm = new SubmitForm(this.submitContainer, api, {
-      onSubmitSuccess: (rank) => {
-        this.showLeaderboard(rank);
+    this.handleForm = new HandleForm(this.handleContainer, {
+      onSaved: () => {
+        this.showReady();
+        this.callbacks.onStart();
       },
       onCancel: () => {
-        this.showGameOver();
+        this.showReady();
       },
     });
 
@@ -144,6 +150,12 @@ export class ScreenManager {
       this.showLeaderboard();
     });
 
+    const readyChangeBtn = this.overlayRoot.querySelector('#ready-change-btn')!;
+    readyChangeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.showHandleForm();
+    });
+
     const readySoundBtn = this.overlayRoot.querySelector('#ready-sound-btn') as HTMLButtonElement;
     readySoundBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -157,18 +169,10 @@ export class ScreenManager {
       this.callbacks.onRestart();
     });
 
-    const goSubmitBtn = this.overlayRoot.querySelector('#go-submit-btn')!;
-    goSubmitBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (this.lastToken) {
-        this.showSubmit(this.lastScore, this.lastToken);
-      }
-    });
-
     const goLbBtn = this.overlayRoot.querySelector('#go-lb-btn')!;
     goLbBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.showLeaderboard();
+      this.showLeaderboard(this.lastRank);
     });
 
     // HUD buttons
@@ -178,13 +182,32 @@ export class ScreenManager {
     });
   }
 
-  private lastScore = 0;
-  private lastToken: RunTokenPayload | null = null;
   private lastIsNewBest = false;
+  /** Rank of the player's best run, from the last successful save. */
+  private lastRank: number | undefined;
+  /** Bumped per run so a slow save can't write its result onto a later run's card. */
+  private saveSeq = 0;
   private returnScreen: 'READY' | 'GAME_OVER' = 'READY';
 
   showReady(): void {
+    const handle = getSavedHandle();
+    const line = this.readyScreen.querySelector('#ready-player-line')!;
+    line.classList.toggle('hidden', !handle);
+    this.readyScreen.querySelector('#ready-player-handle')!.textContent = handle ? `@${handle}` : '';
     this.setScreen('READY');
+  }
+
+  showHandleForm(): void {
+    this.setScreen('HANDLE');
+    this.handleForm.open();
+  }
+
+  /** Called when the player tries to start a run. With no handle saved yet,
+   *  opens the handle form instead (it starts the run itself once saved). */
+  ensureHandle(): boolean {
+    if (getSavedHandle()) return true;
+    this.showHandleForm();
+    return false;
   }
 
   showHud(): void {
@@ -192,8 +215,6 @@ export class ScreenManager {
   }
 
   showGameOver(score?: number, highScore?: number, isNewBest?: boolean, token?: RunTokenPayload): void {
-    if (score !== undefined) this.lastScore = score;
-    if (token !== undefined) this.lastToken = token;
     if (isNewBest !== undefined) this.lastIsNewBest = isNewBest;
 
     if (score !== undefined) {
@@ -212,12 +233,36 @@ export class ScreenManager {
       badge.classList.add('hidden');
     }
 
+    // A fresh run's result (not a return from the leaderboard): save it.
+    if (score !== undefined && token !== undefined) {
+      this.autoSave(score, token);
+    }
+
     this.setScreen('GAME_OVER');
   }
 
-  showSubmit(score: number, token: RunTokenPayload): void {
-    this.setScreen('SUBMIT');
-    this.submitForm.open(score, token);
+  /** Every finished run goes straight to the leaderboard under the saved
+   *  handle; the board keeps each player's best, so worse runs don't hurt. */
+  private async autoSave(score: number, token: RunTokenPayload): Promise<void> {
+    const seq = ++this.saveSeq;
+    const statusEl = this.gameOverScreen.querySelector('#go-save-status')!;
+    const handle = getSavedHandle();
+
+    if (!handle || score <= 0) {
+      statusEl.textContent = '';
+      return;
+    }
+
+    statusEl.textContent = 'SAVING SCORE...';
+    const res = await this.api.submitScore(handle, score, token);
+    if (seq !== this.saveSeq) return;
+
+    if (res.success) {
+      this.lastRank = res.rank;
+      statusEl.textContent = `SAVED AS @${handle.toUpperCase()} · RANK #${res.rank}`;
+    } else {
+      statusEl.textContent = res.error || 'COULD NOT SAVE SCORE';
+    }
   }
 
   showLeaderboard(highlightRank?: number): void {
@@ -246,8 +291,8 @@ export class ScreenManager {
     this.gameOverScreen.classList.toggle('active', screen === 'GAME_OVER');
     this.gameOverScreen.classList.toggle('hidden', screen !== 'GAME_OVER');
 
-    this.submitContainer.classList.toggle('active', screen === 'SUBMIT');
-    this.submitContainer.classList.toggle('hidden', screen !== 'SUBMIT');
+    this.handleContainer.classList.toggle('active', screen === 'HANDLE');
+    this.handleContainer.classList.toggle('hidden', screen !== 'HANDLE');
 
     this.leaderboardContainer.classList.toggle('active', screen === 'LEADERBOARD');
     this.leaderboardContainer.classList.toggle('hidden', screen !== 'LEADERBOARD');
@@ -265,7 +310,7 @@ export class ScreenManager {
   /** True when a jump press should start/restart a run. Both cards invite it
    *  ("PRESS SPACE TO START" / "RUN AGAIN (SPACE)"), and accepting either one
    *  regardless of the run state means a screen/state mismatch can never
-   *  strand the player on a card that ignores input. Modals (submit form,
+   *  strand the player on a card that ignores input. Modals (handle form,
    *  leaderboard, pause) still swallow the key. */
   acceptsStartInput(): boolean {
     return this.currentScreen === 'READY' || this.currentScreen === 'GAME_OVER';

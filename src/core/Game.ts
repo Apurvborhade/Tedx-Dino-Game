@@ -144,7 +144,7 @@ export class Game {
         (this.input.jumpPressed || this.input.hasBufferedJump())
       ) {
         this.input.consumeJump();
-        this.startRun();
+        if (this.screens.ensureHandle()) this.startRun();
         return;
       }
       this.player.x = this.viewport.playerX;

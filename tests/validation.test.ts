@@ -24,7 +24,6 @@ describe('Leaderboard return screen', () => {
     // Opening the leaderboard from game over and pressing BACK used to show
     // READY while the run sat in GAME_OVER, so neither screen took input.
     expect(returnScreenFor('GAME_OVER')).toBe('GAME_OVER');
-    expect(returnScreenFor('SUBMIT')).toBe('GAME_OVER');
   });
 
   it('returns to the ready screen when opened before a run', () => {

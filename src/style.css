@@ -496,6 +496,61 @@ input[type="text"]:focus {
   min-height: 14px;
 }
 
+/* "PLAYING AS @handle · CHANGE" on the start card — boxed so the player
+   notices whose name their scores are going under. */
+.player-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: var(--border-width) solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  background: var(--paper);
+  text-align: left;
+}
+
+.player-line.hidden {
+  display: none;
+}
+
+.player-label {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 2px;
+  opacity: 0.7;
+}
+
+.player-handle {
+  display: block;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  word-break: break-all;
+}
+
+.link-btn {
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--paper);
+  background: var(--ink);
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+/* "SAVED AS @HANDLE · RANK #n" on the game-over card */
+#go-save-status {
+  font-size: 11px;
+  letter-spacing: 1px;
+  word-break: break-all;
+}
+
 /* ── Leaderboard Table ───────────────────────────────────────────────────── */
 
 .header-row {

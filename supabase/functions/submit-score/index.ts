@@ -101,11 +101,20 @@ serve(async (req) => {
       });
     }
 
-    // 7. Calculate Rank
+    // 7. Calculate Rank — of the player's best run among every player's best
+    // (the `leaderboard` view), since the game now saves every run and a
+    // count over raw `scores` would rank against other players' worse runs.
+    const { data: own } = await supabase
+      .from('leaderboard')
+      .select('score')
+      .eq('name', cleanName)
+      .maybeSingle();
+    const best = Math.max(score, own?.score ?? 0);
+
     const { count } = await supabase
-      .from('scores')
+      .from('leaderboard')
       .select('*', { count: 'exact', head: true })
-      .gt('score', score);
+      .gt('score', best);
 
     const rank = (count ?? 0) + 1;
 
@@ -113,6 +122,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         rank,
+        best,
         isTop10: rank <= 10,
       }),
       {
